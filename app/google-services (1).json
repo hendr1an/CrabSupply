@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "734498648242",
+    "project_id": "crabsupply-skripsi",
+    "storage_bucket": "crabsupply-skripsi.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:734498648242:android:838d7b6c08007e7375d9ab",
+        "android_client_info": {
+          "package_name": "com.gyan.crabsupply"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyASP6zUtlNj74z8YD_gASpyT75xF-xrajY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
