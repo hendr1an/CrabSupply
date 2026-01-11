@@ -1,26 +1,49 @@
 package com.example.crabsupply.ui.auth
 
+import android.widget.Toast
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel // Import ini penting
+import com.example.crabsupply.viewmodel.AuthViewModel
 
 @Composable
 fun RegisterScreen(
-    onRegisterSuccess: () -> Unit = {}, // Kalau sukses daftar, kembali ke Login
-    onLoginClick: () -> Unit = {}       // Tombol "Sudah punya akun"
+    onRegisterSuccess: () -> Unit = {},
+    onLoginClick: () -> Unit = {}
 ) {
-    // Variabel untuk menampung ketikan user
+    // Panggil ViewModel
+    val viewModel: AuthViewModel = viewModel()
+
+    // Pantau data dari ViewModel
+    val isLoading by viewModel.isLoading.collectAsState()
+    val status by viewModel.authStatus.collectAsState()
+
+    val context = LocalContext.current
+
+    // Cek Status: Kalau sukses, pindah layar. Kalau gagal, munculkan Toast.
+    LaunchedEffect(status) {
+        status?.let { msg ->
+            if (msg == "SUCCESS") {
+                Toast.makeText(context, "Registrasi Berhasil!", Toast.LENGTH_SHORT).show()
+                onRegisterSuccess() // Pindah ke Login
+            } else {
+                Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
+            }
+            viewModel.resetStatus()
+        }
+    }
+
     var name by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var phone by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
-    var isLoading by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
@@ -29,7 +52,6 @@ fun RegisterScreen(
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // 1. Judul
         Text(
             text = "Daftar Akun Baru",
             fontSize = 28.sp,
@@ -39,7 +61,6 @@ fun RegisterScreen(
 
         Spacer(modifier = Modifier.height(32.dp))
 
-        // 2. Input Nama Lengkap
         OutlinedTextField(
             value = name,
             onValueChange = { name = it },
@@ -50,7 +71,6 @@ fun RegisterScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // 3. Input Email
         OutlinedTextField(
             value = email,
             onValueChange = { email = it },
@@ -61,7 +81,6 @@ fun RegisterScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // 4. Input No HP
         OutlinedTextField(
             value = phone,
             onValueChange = { phone = it },
@@ -72,11 +91,10 @@ fun RegisterScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // 5. Input Password
         OutlinedTextField(
             value = password,
             onValueChange = { password = it },
-            label = { Text("Password") },
+            label = { Text("Password (Min 6 Karakter)") },
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
             visualTransformation = PasswordVisualTransformation()
@@ -84,16 +102,19 @@ fun RegisterScreen(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // 6. Tombol Daftar
         Button(
             onClick = {
-                // Nanti logika Firebase Register masuk sini
-                isLoading = true
+                // Validasi sederhana sebelum kirim ke Firebase
+                if (name.isNotEmpty() && email.isNotEmpty() && password.length >= 6) {
+                    viewModel.register(name, email, phone, password)
+                } else {
+                    Toast.makeText(context, "Data belum lengkap / Password < 6", Toast.LENGTH_SHORT).show()
+                }
             },
             modifier = Modifier
                 .fillMaxWidth()
                 .height(50.dp),
-            enabled = !isLoading
+            enabled = !isLoading // Matikan tombol kalau lagi loading
         ) {
             if (isLoading) {
                 CircularProgressIndicator(color = MaterialTheme.colorScheme.onPrimary)
@@ -104,15 +125,8 @@ fun RegisterScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // 7. Link Balik ke Login
         TextButton(onClick = { onLoginClick() }) {
             Text("Sudah punya akun? Login di sini")
         }
     }
-}
-
-@Preview(showBackground = true, showSystemUi = true)
-@Composable
-fun RegisterScreenPreview() {
-    RegisterScreen()
 }
