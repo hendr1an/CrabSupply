@@ -28,13 +28,10 @@ class MainActivity : ComponentActivity() {
                     if (currentScreen == "login") {
                         // Tampilkan Login
                         LoginScreen(
-                            onLoginSuccess = {
-                                // Nanti kalau login sukses, pindah ke Home (Buyer/Admin)
-                            },
-                            // UPDATE INI: Tambahkan navigasi ke register di file LoginScreen nanti
+                            onLoginSuccess = { },
+                            onRegisterClick = { currentScreen = "register" }
                         )
-                        // Karena LoginScreen kita sebelumnya belum punya tombol navigasi,
-                        // Kita tempel logika register screen manual di langkah selanjutnya.
+
                     } else {
                         // Tampilkan Register
                         RegisterScreen(
