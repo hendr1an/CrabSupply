@@ -3,45 +3,47 @@ package com.example.crabsupply
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.runtime.* // Import penting untuk State
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
-import com.example.crabsupply.ui.theme.CrabSupplyTheme
+import com.example.crabsupply.ui.auth.LoginScreen
+import com.example.crabsupply.ui.auth.RegisterScreen
+import com.example.crabsupply.ui.theme.CrabSupplyTheme // Sesuaikan jika nama theme beda
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
         setContent {
             CrabSupplyTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Greeting(
-                        name = "Android",
-                        modifier = Modifier.padding(innerPadding)
-                    )
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.background
+                ) {
+                    // LOGIKA PINDAH LAYAR SEDERHANA
+                    // Default layar adalah "login"
+                    var currentScreen by remember { mutableStateOf("login") }
+
+                    if (currentScreen == "login") {
+                        // Tampilkan Login
+                        LoginScreen(
+                            onLoginSuccess = {
+                                // Nanti kalau login sukses, pindah ke Home (Buyer/Admin)
+                            },
+                            // UPDATE INI: Tambahkan navigasi ke register di file LoginScreen nanti
+                        )
+                        // Karena LoginScreen kita sebelumnya belum punya tombol navigasi,
+                        // Kita tempel logika register screen manual di langkah selanjutnya.
+                    } else {
+                        // Tampilkan Register
+                        RegisterScreen(
+                            onLoginClick = { currentScreen = "login" }, // Balik ke Login
+                            onRegisterSuccess = { currentScreen = "login" } // Sukses daftar, suruh login
+                        )
+                    }
                 }
             }
         }
-    }
-}
-
-@Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name!",
-        modifier = modifier
-    )
-}
-
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-    CrabSupplyTheme {
-        Greeting("Android")
     }
 }
