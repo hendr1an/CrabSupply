@@ -13,7 +13,8 @@ import androidx.compose.ui.unit.sp
 
 @Composable
 fun LoginScreen(
-    onLoginSuccess: (String) -> Unit = {} // Nanti dipakai buat navigasi
+    onLoginSuccess: (String) -> Unit = {},
+    onRegisterClick: () -> Unit = {}
 ) {
     // Variabel untuk menyimpan apa yang diketik user
     var email by remember { mutableStateOf("") }
@@ -82,7 +83,7 @@ fun LoginScreen(
         Spacer(modifier = Modifier.height(16.dp))
 
         // 5. Link ke Register (Teks biasa dulu)
-        TextButton(onClick = { /* Nanti arahkan ke Register */ }) {
+        TextButton(onClick = { onRegisterClick() }) { // <--- PANGGIL DI SINI
             Text("Belum punya akun? Daftar di sini")
         }
     }
