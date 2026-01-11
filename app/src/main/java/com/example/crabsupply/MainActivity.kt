@@ -11,6 +11,7 @@ import androidx.compose.ui.Modifier
 import com.example.crabsupply.ui.auth.LoginScreen
 import com.example.crabsupply.ui.auth.RegisterScreen
 import com.example.crabsupply.ui.theme.CrabSupplyTheme // Sesuaikan jika nama theme beda
+import com.example.crabsupply.ui.buyer.HomeScreen // Import Home
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -21,23 +22,27 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    // LOGIKA PINDAH LAYAR SEDERHANA
-                    // Default layar adalah "login"
+                    // State navigasi: "login", "register", atau "home"
                     var currentScreen by remember { mutableStateOf("login") }
 
-                    if (currentScreen == "login") {
-                        // Tampilkan Login
-                        LoginScreen(
-                            onLoginSuccess = { },
-                            onRegisterClick = { currentScreen = "register" }
-                        )
-
-                    } else {
-                        // Tampilkan Register
-                        RegisterScreen(
-                            onLoginClick = { currentScreen = "login" }, // Balik ke Login
-                            onRegisterSuccess = { currentScreen = "login" } // Sukses daftar, suruh login
-                        )
+                    when (currentScreen) {
+                        "login" -> {
+                            LoginScreen(
+                                onLoginSuccess = { currentScreen = "home" }, // Pindah ke Home
+                                onRegisterClick = { currentScreen = "register" }
+                            )
+                        }
+                        "register" -> {
+                            RegisterScreen(
+                                onRegisterSuccess = { currentScreen = "login" },
+                                onLoginClick = { currentScreen = "login" }
+                            )
+                        }
+                        "home" -> {
+                            HomeScreen(
+                                onLogoutClick = { currentScreen = "login" } // Tombol logout balik ke login
+                            )
+                        }
                     }
                 }
             }
