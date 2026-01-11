@@ -1,45 +1,62 @@
 package com.example.crabsupply.ui.auth
 
+import android.widget.Toast
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.crabsupply.viewmodel.AuthViewModel
 
 @Composable
 fun LoginScreen(
-    onLoginSuccess: (String) -> Unit = {},
+    onLoginSuccess: () -> Unit = {}, // Ubah parameter ini jadi tanpa String
     onRegisterClick: () -> Unit = {}
 ) {
-    // Variabel untuk menyimpan apa yang diketik user
+    // 1. Panggil ViewModel
+    val viewModel: AuthViewModel = viewModel()
+    val isLoading by viewModel.isLoading.collectAsState()
+    val status by viewModel.authStatus.collectAsState()
+    val context = LocalContext.current
+
+    // 2. Logika Deteksi Login Sukses
+    LaunchedEffect(status) {
+        status?.let { msg ->
+            if (msg == "LOGIN_SUCCESS") {
+                Toast.makeText(context, "Selamat Datang!", Toast.LENGTH_SHORT).show()
+                onLoginSuccess() // Pindah ke Home
+            } else {
+                Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
+            }
+            viewModel.resetStatus()
+        }
+    }
+
+    // Variabel Input
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
-    var isLoading by remember { mutableStateOf(false) }
 
-    // Column = Menyusun elemen dari atas ke bawah (Vertikal)
     Column(
         modifier = Modifier
-            .fillMaxSize() // Memenuhi layar HP
-            .padding(24.dp), // Jarak dari pinggir layar
-        verticalArrangement = Arrangement.Center, // Konten di tengah vertikal
-        horizontalAlignment = Alignment.CenterHorizontally // Konten di tengah horizontal
+            .fillMaxSize()
+            .padding(24.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // 1. Judul Aplikasi
         Text(
             text = "CrabSupply Login",
-            fontSize = 32.sp,
+            fontSize = 28.sp,
             style = MaterialTheme.typography.headlineMedium,
             color = MaterialTheme.colorScheme.primary
         )
 
-        Spacer(modifier = Modifier.height(48.dp)) // Jarak kosong
+        Spacer(modifier = Modifier.height(32.dp))
 
-        // 2. Input Email
         OutlinedTextField(
             value = email,
             onValueChange = { email = it },
@@ -50,28 +67,30 @@ fun LoginScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // 3. Input Password
         OutlinedTextField(
             value = password,
             onValueChange = { password = it },
             label = { Text("Password") },
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
-            visualTransformation = PasswordVisualTransformation() // Biar huruf jadi bintang2/titik
+            visualTransformation = PasswordVisualTransformation()
         )
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // 4. Tombol Masuk
+        // 3. Tombol Login dengan Fungsi ViewModel
         Button(
             onClick = {
-                // Nanti kita isi logika Firebase Login di sini
-                isLoading = true
+                if (email.isNotEmpty() && password.isNotEmpty()) {
+                    viewModel.login(email, password)
+                } else {
+                    Toast.makeText(context, "Isi email dan password dulu!", Toast.LENGTH_SHORT).show()
+                }
             },
             modifier = Modifier
                 .fillMaxWidth()
                 .height(50.dp),
-            enabled = !isLoading // Tombol mati kalau lagi loading
+            enabled = !isLoading
         ) {
             if (isLoading) {
                 CircularProgressIndicator(color = MaterialTheme.colorScheme.onPrimary)
@@ -80,18 +99,10 @@ fun LoginScreen(
             }
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(24.dp))
 
-        // 5. Link ke Register (Teks biasa dulu)
-        TextButton(onClick = { onRegisterClick() }) { // <--- PANGGIL DI SINI
+        TextButton(onClick = { onRegisterClick() }) {
             Text("Belum punya akun? Daftar di sini")
         }
     }
-}
-
-// Fitur Preview: Biar bisa lihat desain tanpa jalankan Emulator
-@Preview(showBackground = true, showSystemUi = true)
-@Composable
-fun LoginScreenPreview() {
-    LoginScreen()
 }
