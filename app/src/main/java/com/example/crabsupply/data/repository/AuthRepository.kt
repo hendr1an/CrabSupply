@@ -52,4 +52,18 @@ class AuthRepository {
                 }
             }
     }
+    fun loginUser(
+        email: String,
+        pass: String,
+        onResult: (Boolean, String) -> Unit
+    ) {
+        auth.signInWithEmailAndPassword(email, pass)
+            .addOnCompleteListener { task ->
+                if (task.isSuccessful) {
+                    onResult(true, "Login Berhasil!")
+                } else {
+                    onResult(false, "Login Gagal: ${task.exception?.message}")
+                }
+            }
+    }
 }
