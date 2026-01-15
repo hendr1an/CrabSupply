@@ -7,15 +7,18 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.runtime.* import androidx.compose.ui.Modifier
+import androidx.compose.runtime.*
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.crabsupply.data.model.Product // Import Product
 import com.example.crabsupply.ui.admin.AddProductScreen
+import com.example.crabsupply.ui.admin.EditProductScreen // Import Edit Screen
 import com.example.crabsupply.ui.auth.LoginScreen
 import com.example.crabsupply.ui.auth.RegisterScreen
 import com.example.crabsupply.ui.buyer.HomeScreen
 import com.example.crabsupply.ui.theme.CrabSupplyTheme
-import com.example.crabsupply.viewmodel.AdminViewModel // Import ViewModel Admin
+import com.example.crabsupply.viewmodel.AdminViewModel
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -26,16 +29,10 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
+                    val adminViewModel: AdminViewModel = viewModel()
+                    val deleteStatus by adminViewModel.uploadStatus.collectAsState()
                     val context = LocalContext.current
 
-                    // 1. SIAPKAN VIEWMODEL ADMIN DI SINI
-                    // Supaya kita bisa pakai fungsi deleteProduct()
-                    val adminViewModel: AdminViewModel = viewModel()
-
-                    // 2. PANTAU STATUS HAPUS
-                    val deleteStatus by adminViewModel.uploadStatus.collectAsState()
-
-                    // 3. LOGIKA TOAST (Muncul saat hapus berhasil)
                     LaunchedEffect(deleteStatus) {
                         if (deleteStatus == "DELETE_SUCCESS") {
                             Toast.makeText(context, "Produk berhasil dihapus!", Toast.LENGTH_SHORT).show()
@@ -43,8 +40,9 @@ class MainActivity : ComponentActivity() {
                         }
                     }
 
-                    // State navigasi: "login", "register", "home", atau "add_product"
+                    // Variabel Navigasi & Data Sementara
                     var currentScreen by remember { mutableStateOf("login") }
+                    var selectedProduct by remember { mutableStateOf<Product?>(null) } // Wadah data edit
 
                     when (currentScreen) {
                         "login" -> {
@@ -63,23 +61,30 @@ class MainActivity : ComponentActivity() {
                             HomeScreen(
                                 onLogoutClick = { currentScreen = "login" },
                                 onAddProductClick = { currentScreen = "add_product" },
-
-                                // --- BAGIAN BARU: AKSI TOMBOL EDIT & HAPUS ---
+                                // AKSI EDIT: Simpan data, lalu pindah layar
                                 onEditClick = { product ->
-                                    // Sementara tampilkan Toast dulu (Nanti kita buat layarnya)
-                                    Toast.makeText(context, "Edit: ${product.name} (Coming Soon)", Toast.LENGTH_SHORT).show()
+                                    selectedProduct = product
+                                    currentScreen = "edit_product"
                                 },
                                 onDeleteClick = { product ->
-                                    // Panggil fungsi hapus dari ViewModel
                                     adminViewModel.deleteProduct(product.id)
                                 }
-                                // ---------------------------------------------
                             )
                         }
                         "add_product" -> {
                             AddProductScreen(
                                 onBackClick = { currentScreen = "home" }
                             )
+                        }
+                        // HALAMAN EDIT
+                        "edit_product" -> {
+                            // Pastikan ada data yang diedit
+                            selectedProduct?.let { product ->
+                                EditProductScreen(
+                                    productToEdit = product,
+                                    onBackClick = { currentScreen = "home" }
+                                )
+                            }
                         }
                     }
                 }
