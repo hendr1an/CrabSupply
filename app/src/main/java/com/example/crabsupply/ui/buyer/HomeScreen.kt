@@ -17,7 +17,8 @@ import java.util.Locale
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
-    onLogoutClick: () -> Unit = {}
+    onLogoutClick: () -> Unit = {},
+    onAddProductClick: () -> Unit // Parameter untuk aksi tombol tambah
 ) {
     val viewModel: HomeViewModel = viewModel()
     val productList by viewModel.products.collectAsState()
@@ -35,8 +36,23 @@ fun HomeScreen(
                     }
                 }
             )
+        }, // <--- JANGAN LUPA KOMA DI SINI
+
+        // --- BAGIAN INI YANG DITAMBAHKAN (POSISI DI DALAM SCAFFOLD) ---
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = onAddProductClick,
+                containerColor = MaterialTheme.colorScheme.primary, // Warna tombol
+                contentColor = MaterialTheme.colorScheme.onPrimary
+            ) {
+                // Ikon Tambah (+)
+                Text("+", fontSize = 24.sp, fontWeight = FontWeight.Bold)
+            }
         }
+        // -------------------------------------------------------------
+
     ) { paddingValues ->
+        // Konten utama halaman (Daftar Produk)
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
@@ -54,7 +70,7 @@ fun HomeScreen(
                     species = product.species,
                     condition = product.condition,
                     size = product.size,
-                    price = product.priceRetail, // Kita tampilkan harga Eceran dulu
+                    price = product.priceRetail,
                     stock = product.stock
                 )
                 Spacer(modifier = Modifier.height(12.dp))
@@ -63,7 +79,7 @@ fun HomeScreen(
     }
 }
 
-// Kartu Produk yang disesuaikan dengan Model Data Anda
+// Kartu Produk (Tidak berubah, tetap sama)
 @Composable
 fun ProductCard(
     name: String,
