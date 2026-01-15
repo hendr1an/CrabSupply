@@ -13,12 +13,20 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.crabsupply.viewmodel.HomeViewModel
 import java.text.NumberFormat
 import java.util.Locale
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.ui.Alignment
+import com.example.crabsupply.data.model.Product
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     onLogoutClick: () -> Unit = {},
-    onAddProductClick: () -> Unit // Parameter untuk aksi tombol tambah
+    onAddProductClick: () -> Unit,
+    // Parameter baru untuk aksi Edit & Hapus (Nanti diisi di MainActivity)
+    onEditClick: (Product) -> Unit = {},
+    onDeleteClick: (Product) -> Unit = {}
 ) {
     val viewModel: HomeViewModel = viewModel()
     val productList by viewModel.products.collectAsState()
@@ -26,7 +34,7 @@ fun HomeScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Crab Supply - Harga Hari Ini") },
+                title = { Text("Katalog Kepiting") },
                 actions = {
                     TextButton(onClick = {
                         viewModel.logout()
@@ -36,42 +44,28 @@ fun HomeScreen(
                     }
                 }
             )
-        }, // <--- JANGAN LUPA KOMA DI SINI
-
-        // --- BAGIAN INI YANG DITAMBAHKAN (POSISI DI DALAM SCAFFOLD) ---
+        },
         floatingActionButton = {
             FloatingActionButton(
                 onClick = onAddProductClick,
-                containerColor = MaterialTheme.colorScheme.primary, // Warna tombol
+                containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary
             ) {
-                // Ikon Tambah (+)
                 Text("+", fontSize = 24.sp, fontWeight = FontWeight.Bold)
             }
         }
-        // -------------------------------------------------------------
-
     ) { paddingValues ->
-        // Konten utama halaman (Daftar Produk)
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
                 .padding(16.dp)
         ) {
-            item {
-                Text("Katalog Kepiting Segar:", fontSize = 18.sp, fontWeight = FontWeight.Bold)
-                Spacer(modifier = Modifier.height(16.dp))
-            }
-
             items(productList) { product ->
                 ProductCard(
-                    name = product.name,
-                    species = product.species,
-                    condition = product.condition,
-                    size = product.size,
-                    price = product.priceRetail,
-                    stock = product.stock
+                    product = product, // Kirim seluruh object Product
+                    onEdit = { onEditClick(product) },
+                    onDelete = { onDeleteClick(product) }
                 )
                 Spacer(modifier = Modifier.height(12.dp))
             }
@@ -79,15 +73,11 @@ fun HomeScreen(
     }
 }
 
-// Kartu Produk (Tidak berubah, tetap sama)
 @Composable
 fun ProductCard(
-    name: String,
-    species: String,
-    condition: String,
-    size: String,
-    price: Int,
-    stock: Int
+    product: Product, // Menerima object Product utuh
+    onEdit: () -> Unit,
+    onDelete: () -> Unit
 ) {
     Card(
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
@@ -95,12 +85,32 @@ fun ProductCard(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            // Nama Produk
-            Text(text = name, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Nama Produk
+                Text(
+                    text = product.name,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.weight(1f)
+                )
 
-            // Detail Spesies & Kondisi
+                // Tombol Aksi (Edit & Delete)
+                Row {
+                    IconButton(onClick = onEdit) {
+                        Icon(Icons.Default.Edit, contentDescription = "Edit", tint = MaterialTheme.colorScheme.primary)
+                    }
+                    IconButton(onClick = onDelete) {
+                        Icon(Icons.Default.Delete, contentDescription = "Hapus", tint = MaterialTheme.colorScheme.error)
+                    }
+                }
+            }
+
             Text(
-                text = "$species • $condition • Size $size",
+                text = "${product.species} • ${product.condition} • Size ${product.size}",
                 fontSize = 14.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -111,21 +121,9 @@ fun ProductCard(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                // Format Rupiah
-                val formatRp = NumberFormat.getCurrencyInstance(Locale("id", "ID")).format(price)
-                Text(
-                    text = formatRp,
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
-                )
-
-                // Stok
-                Text(
-                    text = "Stok: $stock kg",
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Medium
-                )
+                val formatRp = NumberFormat.getCurrencyInstance(Locale("id", "ID")).format(product.priceRetail)
+                Text(text = formatRp, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                Text(text = "Stok: ${product.stock} kg", fontSize = 14.sp, fontWeight = FontWeight.Medium)
             }
         }
     }
