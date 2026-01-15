@@ -24,17 +24,20 @@ import com.example.crabsupply.data.model.Product
 fun HomeScreen(
     onLogoutClick: () -> Unit = {},
     onAddProductClick: () -> Unit,
-    // Parameter baru untuk aksi Edit & Hapus (Nanti diisi di MainActivity)
     onEditClick: (Product) -> Unit = {},
     onDeleteClick: (Product) -> Unit = {}
 ) {
     val viewModel: HomeViewModel = viewModel()
+
+    // 1. AMBIL DATA PRODUK & DATA ROLE USER
     val productList by viewModel.products.collectAsState()
+    val role by viewModel.userRole.collectAsState()
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Katalog Kepiting") },
+                // Tampilkan role di judul agar tahu Anda sedang login sebagai apa
+                title = { Text("Katalog Kepiting ($role)") },
                 actions = {
                     TextButton(onClick = {
                         viewModel.logout()
@@ -46,12 +49,16 @@ fun HomeScreen(
             )
         },
         floatingActionButton = {
-            FloatingActionButton(
-                onClick = onAddProductClick,
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary
-            ) {
-                Text("+", fontSize = 24.sp, fontWeight = FontWeight.Bold)
+            // 2. KUNCI PENGAMAN TOMBOL TAMBAH (+)
+            // Hanya munculkan tombol ini jika role adalah "admin"
+            if (role == "admin") {
+                FloatingActionButton(
+                    onClick = onAddProductClick,
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary
+                ) {
+                    Text("+", fontSize = 24.sp, fontWeight = FontWeight.Bold)
+                }
             }
         }
     ) { paddingValues ->
@@ -63,7 +70,9 @@ fun HomeScreen(
         ) {
             items(productList) { product ->
                 ProductCard(
-                    product = product, // Kirim seluruh object Product
+                    product = product,
+                    // 3. KIRIM STATUS ADMIN KE KARTU
+                    isAdmin = (role == "admin"),
                     onEdit = { onEditClick(product) },
                     onDelete = { onDeleteClick(product) }
                 )
@@ -75,7 +84,8 @@ fun HomeScreen(
 
 @Composable
 fun ProductCard(
-    product: Product, // Menerima object Product utuh
+    product: Product,
+    isAdmin: Boolean, // Menerima info: Apakah user ini admin?
     onEdit: () -> Unit,
     onDelete: () -> Unit
 ) {
@@ -98,13 +108,16 @@ fun ProductCard(
                     modifier = Modifier.weight(1f)
                 )
 
-                // Tombol Aksi (Edit & Delete)
-                Row {
-                    IconButton(onClick = onEdit) {
-                        Icon(Icons.Default.Edit, contentDescription = "Edit", tint = MaterialTheme.colorScheme.primary)
-                    }
-                    IconButton(onClick = onDelete) {
-                        Icon(Icons.Default.Delete, contentDescription = "Hapus", tint = MaterialTheme.colorScheme.error)
+                // 4. KUNCI PENGAMAN TOMBOL EDIT & HAPUS
+                // Hanya munculkan ikon pensil & sampah jika isAdmin = true
+                if (isAdmin) {
+                    Row {
+                        IconButton(onClick = onEdit) {
+                            Icon(Icons.Default.Edit, contentDescription = "Edit", tint = MaterialTheme.colorScheme.primary)
+                        }
+                        IconButton(onClick = onDelete) {
+                            Icon(Icons.Default.Delete, contentDescription = "Hapus", tint = MaterialTheme.colorScheme.error)
+                        }
                     }
                 }
             }

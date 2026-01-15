@@ -66,4 +66,26 @@ class AuthRepository {
                 }
             }
     }
+
+    fun getUserRole(onResult: (String) -> Unit) {
+        val userId = auth.currentUser?.uid
+        if (userId != null) {
+            firestore.collection("users").document(userId)
+                .get()
+                .addOnSuccessListener { document ->
+                    if (document.exists()) {
+                        // Ambil tulisan di kolom 'role'
+                        val role = document.getString("role") ?: "buyer"
+                        onResult(role)
+                    } else {
+                        onResult("buyer") // Default kalau tidak ketemu
+                    }
+                }
+                .addOnFailureListener {
+                    onResult("buyer")
+                }
+        } else {
+            onResult("buyer")
+        }
+    }
 }
