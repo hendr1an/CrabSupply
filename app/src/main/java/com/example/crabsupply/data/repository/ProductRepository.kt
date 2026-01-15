@@ -3,6 +3,9 @@ package com.example.crabsupply.data.repository
 import com.example.crabsupply.data.model.Product
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.callbackFlow
 
 class ProductRepository {
     private val firestore = FirebaseFirestore.getInstance()
@@ -55,5 +58,25 @@ class ProductRepository {
             .addOnFailureListener { e ->
                 onResult(false, "Gagal hapus: ${e.message}")
             }
+    }
+
+    fun getProductsRealtime(): Flow<List<Product>> = callbackFlow {
+        val listener = firestore.collection("products")
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    close(error) // Tutup koneksi jika error
+                    return@addSnapshotListener
+                }
+
+                if (snapshot != null) {
+                    val products = snapshot.documents.map { doc ->
+                        doc.toObject(Product::class.java)!!.copy(id = doc.id)
+                    }
+                    trySend(products) // Kirim data terbaru ke ViewModel
+                }
+            }
+
+        // Hapus listener kalau aplikasi ditutup (biar tidak memakan memori)
+        awaitClose { listener.remove() }
     }
 }
