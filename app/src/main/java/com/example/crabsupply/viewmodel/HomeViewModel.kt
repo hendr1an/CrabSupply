@@ -12,18 +12,20 @@ import kotlinx.coroutines.launch
 class HomeViewModel : ViewModel() {
     private val repository = ProductRepository()
 
-    // Data List Produk untuk ditampilkan
     private val _products = MutableStateFlow<List<Product>>(emptyList())
     val products: StateFlow<List<Product>> = _products
 
     init {
-        loadProducts() // Otomatis ambil data saat Home dibuka
+        // Langsung pasang "CCTV" saat ViewModel dibuat
+        startRealtimeUpdates()
     }
 
-    fun loadProducts() {
+    private fun startRealtimeUpdates() {
         viewModelScope.launch {
-            val result = repository.getAllProducts()
-            _products.value = result
+            // collect() artinya kita menampung aliran data terus menerus
+            repository.getProductsRealtime().collect { updatedList ->
+                _products.value = updatedList
+            }
         }
     }
 
