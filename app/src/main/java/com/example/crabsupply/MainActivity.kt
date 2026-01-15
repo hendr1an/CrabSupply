@@ -8,6 +8,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.* // Import penting untuk State
 import androidx.compose.ui.Modifier
+import com.example.crabsupply.ui.admin.AddProductScreen
 import com.example.crabsupply.ui.auth.LoginScreen
 import com.example.crabsupply.ui.auth.RegisterScreen
 import com.example.crabsupply.ui.theme.CrabSupplyTheme // Sesuaikan jika nama theme beda
@@ -40,7 +41,13 @@ class MainActivity : ComponentActivity() {
                         }
                         "home" -> {
                             HomeScreen(
-                                onLogoutClick = { currentScreen = "login" } // Tombol logout balik ke login
+                                onLogoutClick = { currentScreen = "login" }, // Tombol logout balik ke login //
+                                onAddProductClick = { currentScreen = "add_product" }
+                            )
+                        }
+                        "add_product" -> {
+                            AddProductScreen(
+                                onBackClick = { currentScreen = "home" } // Kalau selesai/batal, balik ke Home
                             )
                         }
                     }
