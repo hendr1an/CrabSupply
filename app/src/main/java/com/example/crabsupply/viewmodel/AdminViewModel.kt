@@ -15,6 +15,7 @@ class AdminViewModel : ViewModel() {
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading
 
+    // FUNGSI 1: Upload (Simpan Produk Baru)
     fun uploadProduct(
         name: String,
         species: String,
@@ -29,7 +30,7 @@ class AdminViewModel : ViewModel() {
         val priceInt = priceRetail.toIntOrNull() ?: 0
         val stockInt = stock.toIntOrNull() ?: 0
 
-        // Masukkan ke wadah Model Data Anda yang canggih itu
+        // Masukkan ke wadah Model Data
         val newProduct = Product(
             name = name,
             species = species,
@@ -49,20 +50,22 @@ class AdminViewModel : ViewModel() {
                 _uploadStatus.value = message
             }
         }
+    }
 
-        fun deleteProduct(productId: String) {
-            _isLoading.value = true
-            repository.deleteProduct(productId) { success, message ->
-                _isLoading.value = false
-                if (success) {
-                    _uploadStatus.value = "DELETE_SUCCESS" // Kode khusus
-                } else {
-                    _uploadStatus.value = message
-                }
+
+    fun deleteProduct(productId: String) {
+        _isLoading.value = true
+        repository.deleteProduct(productId) { success, message ->
+            _isLoading.value = false
+            if (success) {
+                _uploadStatus.value = "DELETE_SUCCESS" // Kode khusus
+            } else {
+                _uploadStatus.value = message
             }
         }
     }
 
+    // FUNGSI 3: Reset Status
     fun resetStatus() {
         _uploadStatus.value = null
     }
