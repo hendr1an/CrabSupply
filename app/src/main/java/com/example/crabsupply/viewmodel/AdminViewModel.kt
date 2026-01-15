@@ -69,4 +69,44 @@ class AdminViewModel : ViewModel() {
     fun resetStatus() {
         _uploadStatus.value = null
     }
+
+    // ... (kode sebelumnya)
+
+    // FUNGSI 3: Update (Edit Produk Lama)
+    fun updateExistingProduct(
+        id: String, // Kita butuh ID untuk tahu produk mana yang diedit
+        name: String,
+        species: String,
+        condition: String,
+        size: String,
+        priceRetail: String,
+        stock: String
+    ) {
+        _isLoading.value = true
+
+        val priceInt = priceRetail.toIntOrNull() ?: 0
+        val stockInt = stock.toIntOrNull() ?: 0
+
+        // Masukkan data baru ke objek Product (ID tetap sama)
+        val updatedProduct = Product(
+            id = id, // PENTING: ID tidak boleh berubah!
+            name = name,
+            species = species,
+            condition = condition,
+            size = size,
+            priceRetail = priceInt,
+            priceWholesale = priceInt - 10000,
+            stock = stockInt,
+            isAvailable = stockInt > 0
+        )
+
+        repository.updateProduct(updatedProduct) { success, message ->
+            _isLoading.value = false
+            if (success) {
+                _uploadStatus.value = "UPDATE_SUCCESS" // Kode khusus update
+            } else {
+                _uploadStatus.value = message
+            }
+        }
+    }
 }
