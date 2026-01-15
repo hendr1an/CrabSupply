@@ -33,4 +33,27 @@ class ProductRepository {
                 onResult(false, "Gagal upload: ${e.message}")
             }
     }
+
+    fun updateProduct(product: Product, onResult: (Boolean, String) -> Unit) {
+        firestore.collection("products").document(product.id)
+            .set(product) // Menimpa data lama dengan data baru
+            .addOnSuccessListener {
+                onResult(true, "Produk Berhasil Diupdate!")
+            }
+            .addOnFailureListener { e ->
+                onResult(false, "Gagal update: ${e.message}")
+            }
+    }
+
+    // 2. FUNGSI HAPUS (DELETE)
+    fun deleteProduct(productId: String, onResult: (Boolean, String) -> Unit) {
+        firestore.collection("products").document(productId)
+            .delete()
+            .addOnSuccessListener {
+                onResult(true, "Produk Berhasil Dihapus!")
+            }
+            .addOnFailureListener { e ->
+                onResult(false, "Gagal hapus: ${e.message}")
+            }
+    }
 }
