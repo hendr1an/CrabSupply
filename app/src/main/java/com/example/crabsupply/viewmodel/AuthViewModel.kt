@@ -45,4 +45,5 @@ class AuthViewModel : ViewModel() {
             }
         }
     }
+
 }
