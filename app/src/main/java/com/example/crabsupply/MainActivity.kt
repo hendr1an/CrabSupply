@@ -13,10 +13,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.crabsupply.data.model.Product
 import com.example.crabsupply.ui.admin.AddProductScreen
-import com.example.crabsupply.ui.admin.AdminOrderScreen // <--- IMPORT BARU
+import com.example.crabsupply.ui.admin.AdminOrderScreen
 import com.example.crabsupply.ui.admin.EditProductScreen
 import com.example.crabsupply.ui.auth.LoginScreen
 import com.example.crabsupply.ui.auth.RegisterScreen
+import com.example.crabsupply.ui.buyer.BuyerOrderScreen // <--- IMPORT BARU (RIWAYAT)
 import com.example.crabsupply.ui.buyer.HomeScreen
 import com.example.crabsupply.ui.buyer.ProductDetailScreen
 import com.example.crabsupply.ui.theme.CrabSupplyTheme
@@ -51,7 +52,7 @@ class MainActivity : ComponentActivity() {
 
                     // Navigasi & State
                     var currentScreen by remember { mutableStateOf(startDestination) }
-                    var selectedProduct by remember { mutableStateOf<Product?>(null) } // Menyimpan produk yang dipilih
+                    var selectedProduct by remember { mutableStateOf<Product?>(null) }
 
                     when (currentScreen) {
                         "login" -> {
@@ -80,16 +81,20 @@ class MainActivity : ComponentActivity() {
                                 onDeleteClick = { product ->
                                     adminViewModel.deleteProduct(product.id)
                                 },
-
                                 // Aksi Klik Produk (Buyer) -> Ke Detail Pesanan
                                 onProductClick = { product ->
-                                    selectedProduct = product // Simpan data produknya
-                                    currentScreen = "detail_product" // Pindah layar
+                                    selectedProduct = product
+                                    currentScreen = "detail_product"
                                 },
 
-                                // AKSI BARU: Buka Daftar Pesanan (Khusus Admin)
-                                onOrderListClick = {
+                                // --- UPDATE NAVIGASI ---
+                                // 1. Admin klik List -> Ke Halaman Kelola
+                                onAdminOrdersClick = {
                                     currentScreen = "admin_orders"
+                                },
+                                // 2. Buyer klik History -> Ke Halaman Riwayat
+                                onBuyerHistoryClick = {
+                                    currentScreen = "buyer_orders"
                                 }
                             )
                         }
@@ -115,9 +120,16 @@ class MainActivity : ComponentActivity() {
                             }
                         }
 
-                        // HALAMAN BARU: ADMIN KELOLA PESANAN
+                        // HALAMAN ADMIN: KELOLA PESANAN
                         "admin_orders" -> {
                             AdminOrderScreen(
+                                onBackClick = { currentScreen = "home" }
+                            )
+                        }
+
+                        // HALAMAN BUYER: RIWAYAT PESANAN (BARU)
+                        "buyer_orders" -> {
+                            BuyerOrderScreen(
                                 onBackClick = { currentScreen = "home" }
                             )
                         }
