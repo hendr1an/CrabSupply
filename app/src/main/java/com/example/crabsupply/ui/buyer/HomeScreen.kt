@@ -25,18 +25,18 @@ fun HomeScreen(
     onLogoutClick: () -> Unit = {},
     onAddProductClick: () -> Unit,
     onEditClick: (Product) -> Unit = {},
-    onDeleteClick: (Product) -> Unit = {}
+    onDeleteClick: (Product) -> Unit = {},
+    // PARAMETER BARU: Aksi saat kartu diklik
+    onProductClick: (Product) -> Unit = {}
 ) {
     val viewModel: HomeViewModel = viewModel()
 
-    // 1. AMBIL DATA PRODUK & DATA ROLE USER
     val productList by viewModel.products.collectAsState()
     val role by viewModel.userRole.collectAsState()
 
     Scaffold(
         topBar = {
             TopAppBar(
-                // Tampilkan role di judul agar tahu Anda sedang login sebagai apa
                 title = { Text("Katalog Kepiting ($role)") },
                 actions = {
                     TextButton(onClick = {
@@ -49,8 +49,6 @@ fun HomeScreen(
             )
         },
         floatingActionButton = {
-            // 2. KUNCI PENGAMAN TOMBOL TAMBAH (+)
-            // Hanya munculkan tombol ini jika role adalah "admin"
             if (role == "admin") {
                 FloatingActionButton(
                     onClick = onAddProductClick,
@@ -71,10 +69,11 @@ fun HomeScreen(
             items(productList) { product ->
                 ProductCard(
                     product = product,
-                    // 3. KIRIM STATUS ADMIN KE KARTU
                     isAdmin = (role == "admin"),
                     onEdit = { onEditClick(product) },
-                    onDelete = { onDeleteClick(product) }
+                    onDelete = { onDeleteClick(product) },
+                    // SAMBUNGKAN AKSI KLIK DI SINI
+                    onClick = { onProductClick(product) }
                 )
                 Spacer(modifier = Modifier.height(12.dp))
             }
@@ -82,14 +81,17 @@ fun HomeScreen(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class) // Tambahkan anotasi ini karena Card(onClick) eksperimental di beberapa versi
 @Composable
 fun ProductCard(
     product: Product,
-    isAdmin: Boolean, // Menerima info: Apakah user ini admin?
+    isAdmin: Boolean,
     onEdit: () -> Unit,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
+    onClick: () -> Unit // PARAMETER BARU DI KARTU
 ) {
     Card(
+        onClick = onClick, // PASANG AKSI KLIK PADA KARTU
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
@@ -108,8 +110,7 @@ fun ProductCard(
                     modifier = Modifier.weight(1f)
                 )
 
-                // 4. KUNCI PENGAMAN TOMBOL EDIT & HAPUS
-                // Hanya munculkan ikon pensil & sampah jika isAdmin = true
+                // Tombol Edit/Hapus (Khusus Admin)
                 if (isAdmin) {
                     Row {
                         IconButton(onClick = onEdit) {
