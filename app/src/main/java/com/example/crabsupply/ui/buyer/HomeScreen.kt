@@ -19,26 +19,25 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Person // <--- IMPORT BARU (Ikon Orang)
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Info // <--- Ikon Dashboard
 import androidx.compose.ui.Alignment
 import com.example.crabsupply.data.model.Product
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
-    // onLogoutClick DIHAPUS, dipindah ke halaman Profil
-    onProfileClick: () -> Unit = {}, // <--- PARAMETER BARU (Ke Profil)
-
+    onProfileClick: () -> Unit = {},
     onAddProductClick: () -> Unit,
     onEditClick: (Product) -> Unit = {},
     onDeleteClick: (Product) -> Unit = {},
     onProductClick: (Product) -> Unit = {},
-    onAdminOrdersClick: () -> Unit = {},
+
+    // GANTI NAMA PARAMETER INI AGAR JELAS
+    onAdminDashboardClick: () -> Unit = {}, // Dulu: onAdminOrdersClick
     onBuyerHistoryClick: () -> Unit = {}
 ) {
     val viewModel: HomeViewModel = viewModel()
-
-    // Ambil data hasil filter
     val productList by viewModel.filteredProducts.collectAsState()
     val role by viewModel.userRole.collectAsState()
     val searchText by viewModel.searchQuery.collectAsState()
@@ -48,22 +47,23 @@ fun HomeScreen(
             TopAppBar(
                 title = { Text("Katalog ($role)") },
 
-                // Ikon Kiri (List Admin / History Buyer)
+                // Ikon Kiri (Dashboard Admin / History Buyer)
                 navigationIcon = {
                     if (role == "admin") {
-                        IconButton(onClick = onAdminOrdersClick) {
-                            Icon(Icons.Default.List, contentDescription = "Kelola Pesanan")
+                        // ADMIN: KE DASHBOARD
+                        IconButton(onClick = onAdminDashboardClick) {
+                            Icon(Icons.Default.Info, contentDescription = "Dashboard Admin")
                         }
                     } else {
+                        // BUYER: KE RIWAYAT
                         IconButton(onClick = onBuyerHistoryClick) {
                             Icon(Icons.Default.DateRange, contentDescription = "Riwayat Pesanan")
                         }
                     }
                 },
 
-                // Ikon Kanan (Profil Akun)
+                // Ikon Kanan (Profil)
                 actions = {
-                    // TOMBOL KELUAR DIGANTI IKON PROFIL
                     IconButton(onClick = onProfileClick) {
                         Icon(Icons.Default.Person, contentDescription = "Profil Akun")
                     }
@@ -88,30 +88,22 @@ fun HomeScreen(
                 .padding(paddingValues)
                 .padding(16.dp)
         ) {
-            // --- KOLOM PENCARIAN ---
+            // PENCARIAN
             OutlinedTextField(
                 value = searchText,
                 onValueChange = { viewModel.onSearchTextChange(it) },
                 modifier = Modifier.fillMaxWidth(),
-                placeholder = { Text("Cari Kepiting (Ex: Rajungan)") },
+                placeholder = { Text("Cari Kepiting...") },
                 leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
                 shape = MaterialTheme.shapes.medium
             )
-
             Spacer(modifier = Modifier.height(16.dp))
 
-            // --- DAFTAR PRODUK ---
+            // DAFTAR PRODUK
             LazyColumn(modifier = Modifier.fillMaxSize()) {
                 if (productList.isEmpty()) {
-                    item {
-                        Text(
-                            text = "Produk tidak ditemukan.",
-                            modifier = Modifier.padding(8.dp),
-                            color = MaterialTheme.colorScheme.secondary
-                        )
-                    }
+                    item { Text("Produk tidak ditemukan.", modifier = Modifier.padding(8.dp)) }
                 }
-
                 items(productList) { product ->
                     ProductCard(
                         product = product,
@@ -130,13 +122,7 @@ fun HomeScreen(
 // ProductCard Tetap Sama
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ProductCard(
-    product: Product,
-    isAdmin: Boolean,
-    onEdit: () -> Unit,
-    onDelete: () -> Unit,
-    onClick: () -> Unit
-) {
+fun ProductCard(product: Product, isAdmin: Boolean, onEdit: () -> Unit, onDelete: () -> Unit, onClick: () -> Unit) {
     Card(
         onClick = onClick,
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
@@ -144,46 +130,19 @@ fun ProductCard(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = product.name,
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.weight(1f)
-                )
-
+            Row(horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                Text(text = product.name, fontSize = 18.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
                 if (isAdmin) {
                     Row {
-                        IconButton(onClick = onEdit) {
-                            Icon(Icons.Default.Edit, contentDescription = "Edit", tint = MaterialTheme.colorScheme.primary)
-                        }
-                        IconButton(onClick = onDelete) {
-                            Icon(Icons.Default.Delete, contentDescription = "Hapus", tint = MaterialTheme.colorScheme.error)
-                        }
+                        IconButton(onClick = onEdit) { Icon(Icons.Default.Edit, contentDescription = "Edit", tint = MaterialTheme.colorScheme.primary) }
+                        IconButton(onClick = onDelete) { Icon(Icons.Default.Delete, contentDescription = "Hapus", tint = MaterialTheme.colorScheme.error) }
                     }
                 }
             }
-
-            Text(
-                text = "${product.species} • ${product.condition} • Size ${product.size}",
-                fontSize = 14.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-
+            Text(text = "${product.species} • ${product.condition}", fontSize = 14.sp)
             Spacer(modifier = Modifier.height(8.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                val formatRp = NumberFormat.getCurrencyInstance(Locale("id", "ID")).format(product.priceRetail)
-                Text(text = formatRp, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-                Text(text = "Stok: ${product.stock} kg", fontSize = 14.sp, fontWeight = FontWeight.Medium)
-            }
+            val formatRp = NumberFormat.getCurrencyInstance(Locale("id", "ID")).format(product.priceRetail)
+            Text(text = formatRp, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
         }
     }
 }
