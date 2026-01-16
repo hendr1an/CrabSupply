@@ -11,12 +11,13 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.crabsupply.data.model.Product // Import Product
+import com.example.crabsupply.data.model.Product
 import com.example.crabsupply.ui.admin.AddProductScreen
-import com.example.crabsupply.ui.admin.EditProductScreen // Import Edit Screen
+import com.example.crabsupply.ui.admin.EditProductScreen
 import com.example.crabsupply.ui.auth.LoginScreen
 import com.example.crabsupply.ui.auth.RegisterScreen
 import com.example.crabsupply.ui.buyer.HomeScreen
+import com.example.crabsupply.ui.buyer.ProductDetailScreen // <--- IMPORT BARU
 import com.example.crabsupply.ui.theme.CrabSupplyTheme
 import com.example.crabsupply.viewmodel.AdminViewModel
 import com.google.firebase.auth.FirebaseAuth
@@ -30,10 +31,12 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
+                    // SETUP ADMIN VIEWMODEL
                     val adminViewModel: AdminViewModel = viewModel()
                     val deleteStatus by adminViewModel.uploadStatus.collectAsState()
                     val context = LocalContext.current
 
+                    // Notifikasi Hapus
                     LaunchedEffect(deleteStatus) {
                         if (deleteStatus == "DELETE_SUCCESS") {
                             Toast.makeText(context, "Produk berhasil dihapus!", Toast.LENGTH_SHORT).show()
@@ -41,12 +44,13 @@ class MainActivity : ComponentActivity() {
                         }
                     }
 
+                    // AUTO LOGIN
                     val currentUser = FirebaseAuth.getInstance().currentUser
                     val startDestination = if (currentUser != null) "home" else "login"
 
-                    // Variabel Navigasi & Data Sementara
+                    // Navigasi & State
                     var currentScreen by remember { mutableStateOf(startDestination) }
-                    var selectedProduct by remember { mutableStateOf<Product?>(null) }
+                    var selectedProduct by remember { mutableStateOf<Product?>(null) } // Menyimpan produk yang dipilih
 
                     when (currentScreen) {
                         "login" -> {
@@ -65,13 +69,21 @@ class MainActivity : ComponentActivity() {
                             HomeScreen(
                                 onLogoutClick = { currentScreen = "login" },
                                 onAddProductClick = { currentScreen = "add_product" },
-                                // AKSI EDIT: Simpan data, lalu pindah layar
+
+                                // Aksi Edit (Admin)
                                 onEditClick = { product ->
                                     selectedProduct = product
                                     currentScreen = "edit_product"
                                 },
+                                // Aksi Hapus (Admin)
                                 onDeleteClick = { product ->
                                     adminViewModel.deleteProduct(product.id)
+                                },
+
+                                // Aksi Klik Produk (Buyer) -> Ke Detail Pesanan
+                                onProductClick = { product ->
+                                    selectedProduct = product // Simpan data produknya
+                                    currentScreen = "detail_product" // Pindah layar
                                 }
                             )
                         }
@@ -80,12 +92,19 @@ class MainActivity : ComponentActivity() {
                                 onBackClick = { currentScreen = "home" }
                             )
                         }
-                        // HALAMAN EDIT
                         "edit_product" -> {
-                            // Pastikan ada data yang diedit
                             selectedProduct?.let { product ->
                                 EditProductScreen(
                                     productToEdit = product,
+                                    onBackClick = { currentScreen = "home" }
+                                )
+                            }
+                        }
+                        // HALAMAN DETAIL PESANAN (BARU)
+                        "detail_product" -> {
+                            selectedProduct?.let { product ->
+                                ProductDetailScreen(
+                                    product = product,
                                     onBackClick = { currentScreen = "home" }
                                 )
                             }
