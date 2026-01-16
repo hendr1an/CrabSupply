@@ -16,7 +16,8 @@ import java.util.Locale
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.List // <--- IMPORT BARU (Ikon List)
+import androidx.compose.material.icons.filled.List // Ikon Admin
+import androidx.compose.material.icons.filled.DateRange // Ikon Buyer (History)
 import androidx.compose.ui.Alignment
 import com.example.crabsupply.data.model.Product
 
@@ -28,8 +29,10 @@ fun HomeScreen(
     onEditClick: (Product) -> Unit = {},
     onDeleteClick: (Product) -> Unit = {},
     onProductClick: (Product) -> Unit = {},
-    // PARAMETER BARU: Aksi untuk membuka daftar pesanan (Admin)
-    onOrderListClick: () -> Unit = {}
+
+    // KITA PECAH JADI DUA AKSI:
+    onAdminOrdersClick: () -> Unit = {}, // 1. Klik List Pesanan (Admin)
+    onBuyerHistoryClick: () -> Unit = {} // 2. Klik Riwayat (Pembeli)
 ) {
     val viewModel: HomeViewModel = viewModel()
 
@@ -41,15 +44,17 @@ fun HomeScreen(
             TopAppBar(
                 title = { Text("Katalog ($role)") },
 
-                // BAGIAN BARU: TOMBOL LIST PESANAN (POJOK KIRI)
+                // LOGIKA IKON POJOK KIRI ATAS
                 navigationIcon = {
-                    // Hanya muncul jika User adalah Admin
                     if (role == "admin") {
-                        IconButton(onClick = onOrderListClick) {
-                            Icon(
-                                imageVector = Icons.Default.List,
-                                contentDescription = "Daftar Pesanan"
-                            )
+                        // Kalau Admin: Lihat ikon List (Kelola Pesanan)
+                        IconButton(onClick = onAdminOrdersClick) {
+                            Icon(Icons.Default.List, contentDescription = "Kelola Pesanan")
+                        }
+                    } else {
+                        // Kalau Buyer: Lihat ikon Kalender (Riwayat Belanja)
+                        IconButton(onClick = onBuyerHistoryClick) {
+                            Icon(Icons.Default.DateRange, contentDescription = "Riwayat Pesanan")
                         }
                     }
                 },
@@ -65,6 +70,7 @@ fun HomeScreen(
             )
         },
         floatingActionButton = {
+            // Tombol Tambah Produk hanya untuk Admin
             if (role == "admin") {
                 FloatingActionButton(
                     onClick = onAddProductClick,
