@@ -1,6 +1,7 @@
 package com.example.crabsupply.viewmodel
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope // PENTING: Untuk menjalankan proses background
 import com.example.crabsupply.data.model.Order
 import com.example.crabsupply.data.model.Product
 import com.example.crabsupply.data.repository.OrderRepository
@@ -8,17 +9,23 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.launch // PENTING: Untuk coroutine
 
 class OrderViewModel : ViewModel() {
     private val repository = OrderRepository()
     private val auth = FirebaseAuth.getInstance()
     private val firestore = FirebaseFirestore.getInstance()
 
+    // Variable Status Umum
     private val _orderStatus = MutableStateFlow<String?>(null)
     val orderStatus: StateFlow<String?> = _orderStatus
 
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading
+
+    // ==========================================
+    // BAGIAN 1: LOGIKA PEMBELI (BUYER)
+    // ==========================================
 
     // Fungsi Membuat Pesanan
     fun submitOrder(product: Product, qtyInput: String, address: String) {
@@ -44,7 +51,7 @@ class OrderViewModel : ViewModel() {
             return
         }
 
-        // 1. Ambil Data Diri Pembeli dulu (Nama & HP) dari Firestore
+        // 1. Ambil Data Diri Pembeli dulu
         firestore.collection("users").document(userId).get()
             .addOnSuccessListener { document ->
                 val buyerName = document.getString("name") ?: "Tanpa Nama"
@@ -57,7 +64,7 @@ class OrderViewModel : ViewModel() {
                     buyerPhone = buyerPhone,
                     productName = product.name,
                     productSpecies = product.species,
-                    pricePerKg = product.priceRetail, // Asumsi harga eceran
+                    pricePerKg = product.priceRetail,
                     quantity = qty,
                     totalPrice = product.priceRetail * qty,
                     address = address
@@ -75,6 +82,37 @@ class OrderViewModel : ViewModel() {
                 _orderStatus.value = "Gagal mengambil data user."
             }
     }
+
+    // ==========================================
+    // BAGIAN 2: LOGIKA ADMIN (KELOLA PESANAN)
+    // ==========================================
+
+    // List Pesanan untuk Admin
+    private val _adminOrders = MutableStateFlow<List<Order>>(emptyList())
+    val adminOrders: StateFlow<List<Order>> = _adminOrders
+
+    // Panggil ini saat Halaman Admin dibuka (Load Data Realtime)
+    fun loadOrdersForAdmin() {
+        viewModelScope.launch {
+            repository.getAllOrdersRealtime().collect { list ->
+                _adminOrders.value = list
+            }
+        }
+    }
+
+    // Fungsi Update Status (Terima/Kirim/Selesai)
+    fun updateStatus(orderId: String, newStatus: String) {
+        _isLoading.value = true
+        repository.updateOrderStatus(orderId, newStatus) { success ->
+            _isLoading.value = false
+            if (success) _orderStatus.value = "Status Berubah: $newStatus"
+            else _orderStatus.value = "Gagal update status"
+        }
+    }
+
+    // ==========================================
+    // UTILS
+    // ==========================================
 
     fun resetStatus() {
         _orderStatus.value = null
