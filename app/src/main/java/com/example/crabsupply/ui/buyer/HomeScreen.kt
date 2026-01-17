@@ -44,13 +44,17 @@ fun HomeScreen(
 ) {
     val viewModel: HomeViewModel = viewModel()
 
-    // Data dari ViewModel
+    // --- PERBAIKAN: Refresh Role Setiap Kali Halaman Dibuka ---
+    LaunchedEffect(Unit) {
+        viewModel.refreshUserRole()
+    }
+    // ----------------------------------------------------------
+
     val productList by viewModel.filteredProducts.collectAsState()
     val role by viewModel.userRole.collectAsState()
     val searchText by viewModel.searchQuery.collectAsState()
-    val selectedCategory by viewModel.selectedCategory.collectAsState() // <--- State Kategori
+    val selectedCategory by viewModel.selectedCategory.collectAsState()
 
-    // Daftar Filter sesuai SRS
     val categories = listOf("Semua", "Bakau", "Rajungan", "Telur", "Daging")
 
     Scaffold(
@@ -105,7 +109,7 @@ fun HomeScreen(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // 2. FILTER CHIPS (Scroll Horizontal) - FITUR SRS 3.1
+            // 2. FILTER CHIPS
             LazyRow(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier.fillMaxWidth()
@@ -149,7 +153,6 @@ fun HomeScreen(
     }
 }
 
-// ProductCard (Versi Gambar Manual)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProductCard(product: Product, isAdmin: Boolean, onEdit: () -> Unit, onDelete: () -> Unit, onClick: () -> Unit) {
@@ -163,7 +166,6 @@ fun ProductCard(product: Product, isAdmin: Boolean, onEdit: () -> Unit, onDelete
             modifier = Modifier.padding(12.dp).fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Gambar Kiri
             Box(
                 modifier = Modifier.size(80.dp).clip(RoundedCornerShape(8.dp)).background(Color.Gray)
             ) {
@@ -181,7 +183,6 @@ fun ProductCard(product: Product, isAdmin: Boolean, onEdit: () -> Unit, onDelete
                 }
             }
             Spacer(modifier = Modifier.width(16.dp))
-            // Info Kanan
             Column(modifier = Modifier.weight(1f)) {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     Text(text = product.name, fontSize = 16.sp, fontWeight = FontWeight.Bold, maxLines = 1)

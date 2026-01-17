@@ -22,8 +22,7 @@ class HomeViewModel : ViewModel() {
     private val _searchQuery = MutableStateFlow("")
     val searchQuery: StateFlow<String> = _searchQuery
 
-    // 3. Filter Kategori (BARU)
-    // Default "Semua". Pilihan lain: "Bakau", "Rajungan", "Telur", "Daging"
+    // 3. Filter Kategori
     private val _selectedCategory = MutableStateFlow("Semua")
     val selectedCategory: StateFlow<String> = _selectedCategory
 
@@ -37,12 +36,18 @@ class HomeViewModel : ViewModel() {
     init {
         startRealtimeUpdates()
         checkUserRole()
-        observeFilters() // Pantau perubahan text DAN kategori
+        observeFilters()
+    }
+
+    // --- PERBAIKAN: FUNGSI UNTUK MEMAKSA CEK ROLE ---
+    fun refreshUserRole() {
+        checkUserRole()
     }
 
     private fun checkUserRole() {
         authRepository.getUserRole { role -> _userRole.value = role }
     }
+    // ------------------------------------------------
 
     private fun startRealtimeUpdates() {
         viewModelScope.launch {
@@ -52,10 +57,9 @@ class HomeViewModel : ViewModel() {
         }
     }
 
-    // LOGIKA FILTER CERDAS (GABUNGAN TEKS & KATEGORI)
+    // LOGIKA FILTER
     private fun observeFilters() {
         viewModelScope.launch {
-            // combine = Pantau 3 variabel sekaligus (Data, Search, Kategori)
             combine(_allProducts, _searchQuery, _selectedCategory) { list, query, category ->
                 filterList(list, query, category)
             }.collect { result ->
@@ -66,28 +70,22 @@ class HomeViewModel : ViewModel() {
 
     private fun filterList(list: List<Product>, query: String, category: String): List<Product> {
         return list.filter { product ->
-            // 1. Cek Kategori (Spesies ATAU Kondisi)
             val matchCategory = if (category == "Semua") {
                 true
             } else {
-                // Cocokkan dengan Species atau Condition (Case Insensitive)
                 product.species.equals(category, ignoreCase = true) ||
                         product.condition.contains(category, ignoreCase = true)
             }
 
-            // 2. Cek Search Text (Nama Produk)
             val matchQuery = if (query.isEmpty()) {
                 true
             } else {
                 product.name.contains(query, ignoreCase = true)
             }
-
-            // Produk harus lolos KEDUANYA
             matchCategory && matchQuery
         }
     }
 
-    // Fungsi Input UI
     fun onSearchTextChange(text: String) {
         _searchQuery.value = text
     }
