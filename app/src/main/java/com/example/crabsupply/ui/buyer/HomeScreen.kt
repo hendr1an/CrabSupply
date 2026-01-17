@@ -22,7 +22,7 @@ import com.example.crabsupply.viewmodel.HomeViewModel
 import java.text.NumberFormat
 import java.util.Locale
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.* // Import semua icon termasuk ShoppingCart
 import androidx.compose.ui.Alignment
 import com.example.crabsupply.data.model.Product
 
@@ -37,13 +37,14 @@ fun HomeScreen(
     onProductClick: (Product) -> Unit = {},
     onBuyerHistoryClick: () -> Unit = {},
 
-    // --- PARAMETER BARU UNTUK ADMIN ---
-    onMenuClick: () -> Unit = {}, // Buat buka Menu Kiri (Drawer)
-    isAdminMode: Boolean = false // Penanda apakah halaman ini dibuka di dalam Tab Admin
+    // --- PARAMETER BARU ---
+    onMenuClick: () -> Unit = {}, // Untuk Admin (Menu Kiri)
+    onCartClick: () -> Unit = {}, // <--- UNTUK BUYER (Masuk Keranjang)
+    isAdminMode: Boolean = false  // Penanda Mode
 ) {
     val viewModel: HomeViewModel = viewModel()
 
-    // Tetap refresh role untuk memastikan data sinkron
+    // Refresh role
     LaunchedEffect(Unit) {
         viewModel.refreshUserRole()
     }
@@ -57,17 +58,16 @@ fun HomeScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                // Judul berubah dinamis biar keren
                 title = { Text(if(isAdminMode) "Katalog Admin" else "Crab Supply") },
 
                 navigationIcon = {
                     if (isAdminMode) {
-                        // JIKA ADMIN: Tampilkan Menu Garis 3 (Untuk buka Drawer Profil/Logout)
+                        // ADMIN: Menu Drawer
                         IconButton(onClick = onMenuClick) {
                             Icon(Icons.Default.Menu, contentDescription = "Menu Admin")
                         }
                     } else {
-                        // JIKA BUYER: Tampilkan Riwayat Pesanan
+                        // BUYER: Riwayat Pesanan
                         IconButton(onClick = onBuyerHistoryClick) {
                             Icon(Icons.Default.DateRange, contentDescription = "Riwayat")
                         }
@@ -75,17 +75,23 @@ fun HomeScreen(
                 },
                 actions = {
                     if (!isAdminMode) {
-                        // JIKA BUYER: Masih butuh tombol profile di kanan atas
+                        // --- BUYER: TAMPILKAN KERANJANG & PROFIL ---
+
+                        // 1. Tombol Keranjang (BARU)
+                        IconButton(onClick = onCartClick) {
+                            Icon(Icons.Default.ShoppingCart, contentDescription = "Keranjang")
+                        }
+
+                        // 2. Tombol Profil
                         IconButton(onClick = onProfileClick) {
                             Icon(Icons.Default.Person, contentDescription = "Profil")
                         }
                     }
-                    // JIKA ADMIN: Kanan atas KOSONG (Karena profil sudah pindah ke Menu Kiri/Drawer)
+                    // ADMIN: Kanan atas kosong
                 }
             )
         },
         floatingActionButton = {
-            // Tombol Tambah Produk HANYA untuk Admin
             if (isAdminMode) {
                 FloatingActionButton(
                     onClick = onAddProductClick,
@@ -103,7 +109,7 @@ fun HomeScreen(
                 .padding(paddingValues)
                 .padding(16.dp)
         ) {
-            // 1. PENCARIAN TEKS
+            // 1. PENCARIAN
             OutlinedTextField(
                 value = searchText,
                 onValueChange = { viewModel.onSearchTextChange(it) },
@@ -115,7 +121,7 @@ fun HomeScreen(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // 2. FILTER CHIPS
+            // 2. FILTER KATEGORI
             LazyRow(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier.fillMaxWidth()
@@ -139,7 +145,7 @@ fun HomeScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // 3. DAFTAR PRODUK
+            // 3. LIST PRODUK
             LazyColumn(modifier = Modifier.fillMaxSize()) {
                 if (productList.isEmpty()) {
                     item { Text("Produk tidak ditemukan.", modifier = Modifier.padding(8.dp)) }
@@ -147,17 +153,12 @@ fun HomeScreen(
                 items(productList) { product ->
                     ProductCard(
                         product = product,
-                        isAdmin = isAdminMode, // Gunakan param isAdminMode
+                        isAdmin = isAdminMode,
                         onEdit = { onEditClick(product) },
                         onDelete = { onDeleteClick(product) },
                         onClick = {
-                            if (isAdminMode) {
-                                // ADMIN -> Edit
-                                onEditClick(product)
-                            } else {
-                                // BUYER -> Order
-                                onProductClick(product)
-                            }
+                            if (isAdminMode) onEditClick(product)
+                            else onProductClick(product)
                         }
                     )
                     Spacer(modifier = Modifier.height(12.dp))
@@ -167,7 +168,7 @@ fun HomeScreen(
     }
 }
 
-// --- PRODUCT CARD (SUDAH MANTAP) ---
+// --- PRODUCT CARD (TIDAK BERUBAH) ---
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProductCard(
@@ -187,7 +188,6 @@ fun ProductCard(
             modifier = Modifier.padding(12.dp).fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // FOTO
             Box(
                 modifier = Modifier.size(80.dp).clip(RoundedCornerShape(8.dp)).background(Color.Gray)
             ) {
@@ -207,7 +207,6 @@ fun ProductCard(
 
             Spacer(modifier = Modifier.width(16.dp))
 
-            // INFO
             Column(modifier = Modifier.weight(1f)) {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     Text(text = product.name, fontSize = 16.sp, fontWeight = FontWeight.Bold, maxLines = 1)
@@ -224,7 +223,6 @@ fun ProductCard(
                     }
                 }
 
-                // KATEGORI PINTAR
                 if (product.category == "Kepiting") {
                     Text(
                         text = "${product.species} • ${product.condition} • ${product.size}",
@@ -236,7 +234,7 @@ fun ProductCard(
                         text = "Fresh Seafood",
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Medium,
-                        color = Color(0xFF009688) // Warna Teal Keren
+                        color = Color(0xFF009688)
                     )
                 }
 

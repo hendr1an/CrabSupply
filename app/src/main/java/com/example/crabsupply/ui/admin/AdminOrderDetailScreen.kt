@@ -3,6 +3,7 @@ package com.example.crabsupply.ui.admin
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
@@ -10,11 +11,14 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import coil.compose.AsyncImage
 import com.example.crabsupply.viewmodel.AdminViewModel
 import java.text.NumberFormat
 import java.text.SimpleDateFormat
@@ -35,14 +39,17 @@ fun AdminOrderDetailScreen(
         return
     }
 
-    // Formatter Tanggal (Contoh: 17 Jan 2026, 14:30)
+    // Formatter Tanggal
     val timeFormat = SimpleDateFormat("dd MMM yyyy, HH:mm", Locale("id", "ID"))
 
     Scaffold(
         topBar = { TopAppBar(title = { Text("Detail Pesanan") }, navigationIcon = { Button(onClick = onBackClick) { Text("Kembali") } }) }
     ) { padding ->
         Column(
-            modifier = Modifier.padding(padding).padding(16.dp).verticalScroll(rememberScrollState())
+            modifier = Modifier
+                .padding(padding)
+                .padding(16.dp)
+                .verticalScroll(rememberScrollState())
         ) {
             // DETAIL PEMBELI
             Text("Info Pembeli", fontWeight = FontWeight.Bold, fontSize = 18.sp)
@@ -62,34 +69,56 @@ fun AdminOrderDetailScreen(
                     Text("Jumlah: ${order.quantity} Kg")
                     val formatRp = NumberFormat.getCurrencyInstance(Locale("id", "ID")).format(order.totalPrice)
                     Text("Total Bayar: $formatRp", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                    Text("Metode: ${order.paymentMethod}", fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
                 }
             }
 
-            // --- TIMELINE / RIWAYAT WAKTU (BARU) ---
+            // TIMELINE / RIWAYAT WAKTU
             Text("Riwayat Pesanan", fontWeight = FontWeight.Bold, fontSize = 18.sp, modifier = Modifier.padding(top = 8.dp))
             Card(
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
                 modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    // 1. Waktu Masuk
                     TimelineRow("Pesanan Masuk", order.dateCreated, timeFormat, true)
-
-                    // 2. Waktu Proses
                     TimelineRow("Diproses Admin", order.dateProcessed, timeFormat, order.dateProcessed > 0)
-
-                    // 3. Waktu Selesai
                     TimelineRow("Selesai / Dikirim", order.dateCompleted, timeFormat, order.dateCompleted > 0)
                 }
             }
 
-            // BUKTI TRANSFER
+            // --- UPDATE: MENAMPILKAN GAMBAR BUKTI TRANSFER ---
             Text("Bukti Transfer", fontWeight = FontWeight.Bold, fontSize = 18.sp, modifier = Modifier.padding(top = 8.dp))
-            Box(modifier = Modifier.height(150.dp).fillMaxWidth().background(Color.LightGray)) {
-                Text("Belum ada bukti upload", modifier = Modifier.padding(16.dp))
-            }
 
-            // TOMBOL AKSI
+            Box(
+                modifier = Modifier
+                    .height(300.dp) // Ukuran diperbesar agar jelas
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(Color.LightGray),
+                contentAlignment = Alignment.Center
+            ) {
+                if (order.paymentProofImage.isNotEmpty()) {
+                    // Tampilkan Gambar dari String Base64
+                    AsyncImage(
+                        model = order.paymentProofImage,
+                        contentDescription = "Bukti Transfer Buyer",
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Fit
+                    )
+                } else {
+                    // Tampilkan Placeholder jika kosong
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("Tidak ada bukti upload", color = Color.DarkGray)
+                        if (order.paymentMethod == "Tunai") {
+                            Text("(Pembayaran TUNAI / COD)", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color.Blue)
+                        }
+                    }
+                }
+            }
+            // -------------------------------------------------
+
+            // TOMBOL AKSI UPDATE STATUS
             Spacer(modifier = Modifier.height(24.dp))
             Text("Update Status:", fontWeight = FontWeight.Bold)
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {

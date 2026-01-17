@@ -10,7 +10,7 @@ import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
-import kotlin.math.* // PENTING: Untuk rumus matematika jarak (Haversine)
+import kotlin.math.*
 
 class OrderViewModel : ViewModel() {
     private val repository = OrderRepository()
@@ -24,14 +24,14 @@ class OrderViewModel : ViewModel() {
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading
 
-    // --- LOGIKA HARGA BARANG (SRS 3.2.3 - Tiered Pricing) ---
+    // --- LOGIKA HARGA BARANG ---
     private val _calculatedPrice = MutableStateFlow(0)
     val calculatedPrice: StateFlow<Int> = _calculatedPrice
 
     private val _isWholesale = MutableStateFlow(false)
     val isWholesale: StateFlow<Boolean> = _isWholesale
 
-    // Koordinat Toko (Sesuai yang kamu set sebelumnya)
+    // Koordinat Toko
     private val STORE_LAT = -7.7817801321614635
     private val STORE_LONG = 110.31995696627142
 
@@ -41,57 +41,45 @@ class OrderViewModel : ViewModel() {
     private val _distanceKm = MutableStateFlow(0.0)
     val distanceKm: StateFlow<Double> = _distanceKm
 
-    // TOTAL FINAL (Harga Barang + Ongkir)
     private val _finalTotal = MutableStateFlow(0)
     val finalTotal: StateFlow<Int> = _finalTotal
 
     // 1. FUNGSI HITUNG HARGA BARANG
     fun calculatePrice(qtyInput: String, product: Product) {
-        // Ubah input text jadi Double (Desimal)
         val qty = qtyInput.toDoubleOrNull() ?: 0.0
 
-        // Logika SRS: Jika qty >= 10.0 kg, pakai Harga Grosir
         if (qty >= 10.0) {
-            // Rumus: Harga (Int) x Berat (Double). Hasilnya dibulatkan kembali ke Int (Rupiah)
             _calculatedPrice.value = (product.priceWholesale * qty).toInt()
             _isWholesale.value = true
         } else {
             _calculatedPrice.value = (product.priceRetail * qty).toInt()
             _isWholesale.value = false
         }
-
-        // Setiap harga barang berubah, update total final
         updateFinalTotal()
     }
 
     // 2. Fungsi Hitung Jarak & Ongkir
     fun calculateShipping(userLat: Double, userLong: Double) {
-        // Rumus Haversine (Hitung jarak antar 2 koordinat bumi)
-        val r = 6371.0 // Jari-jari bumi (km)
+        val r = 6371.0
         val dLat = Math.toRadians(userLat - STORE_LAT)
         val dLon = Math.toRadians(userLong - STORE_LONG)
         val a = sin(dLat / 2) * sin(dLat / 2) +
                 cos(Math.toRadians(STORE_LAT)) * cos(Math.toRadians(userLat)) *
                 sin(dLon / 2) * sin(dLon / 2)
         val c = 2 * atan2(sqrt(a), sqrt(1 - a))
-        val distance = r * c // Jarak dalam KM
+        val distance = r * c
 
         _distanceKm.value = distance
-
-        // LOGIKA ONGKIR: Rp 5.000 per 2 KM (Pembulatan ke atas)
         val cost = (ceil(distance / 2.0) * 5000).toInt()
         _shippingCost.value = cost
-
-        // Setiap ongkir berubah, update total final
         updateFinalTotal()
     }
 
-    // 3. Update Total Bayar Keseluruhan
     private fun updateFinalTotal() {
         _finalTotal.value = _calculatedPrice.value + _shippingCost.value
     }
 
-    // 4. FUNGSI SUBMIT ORDER (REVISI: Menerima Payment Method)
+    // 4. FUNGSI SUBMIT ORDER (REVISI: TERIMA GAMBAR BASE64)
     fun submitOrder(
         product: Product,
         qtyInput: String,
@@ -99,7 +87,8 @@ class OrderViewModel : ViewModel() {
         latitude: String,
         longitude: String,
         hasPaymentProof: Boolean,
-        paymentMethod: String // <--- PARAMETER BARU
+        paymentMethod: String,
+        paymentProofBase64: String // <--- PARAMETER BARU (String Gambar)
     ) {
         _isLoading.value = true
         val userId = auth.currentUser?.uid
@@ -110,39 +99,33 @@ class OrderViewModel : ViewModel() {
             return
         }
 
-        // Konversi input ke Double
         val qty = qtyInput.toDoubleOrNull() ?: 0.0
 
-        // Validasi minimal 0.1 kg
         if (qty <= 0.0) {
             _orderStatus.value = "Minimal pembelian 0.1 kg!"
             _isLoading.value = false
             return
         }
 
-        // Validasi Alamat
         if (address.isEmpty() || latitude.isEmpty() || longitude.isEmpty()) {
             _orderStatus.value = "Alamat dan Lokasi Peta wajib diisi!"
             _isLoading.value = false
             return
         }
 
-        // Validasi Bukti Bayar (Hanya Wajib jika Non-Tunai)
-        if (paymentMethod == "Non-Tunai" && !hasPaymentProof) {
-            _orderStatus.value = "Wajib upload bukti transfer untuk Non-Tunai!"
+        // Validasi Bukti Bayar: Jika Non-Tunai, gambar tidak boleh kosong
+        if (paymentMethod == "Non-Tunai" && paymentProofBase64.isEmpty()) {
+            _orderStatus.value = "Wajib upload bukti transfer!"
             _isLoading.value = false
             return
         }
 
-        // Ambil data user
         firestore.collection("users").document(userId).get()
             .addOnSuccessListener { document ->
                 val buyerName = document.getString("name") ?: "Tanpa Nama"
                 val buyerPhone = document.getString("phone") ?: "-"
 
                 val finalPricePerKg = if (qty >= 10.0) product.priceWholesale else product.priceRetail
-
-                // Gunakan FINAL TOTAL (Barang + Ongkir)
                 val totalBayar = _finalTotal.value
 
                 val newOrder = Order(
@@ -159,7 +142,8 @@ class OrderViewModel : ViewModel() {
 
                     // --- SIMPAN DATA BARU ---
                     paymentMethod = paymentMethod,
-                    dateCreated = System.currentTimeMillis() // Simpan waktu pembuatan order
+                    paymentProofImage = paymentProofBase64, // Simpan Gambar String ke Database
+                    dateCreated = System.currentTimeMillis()
                 )
 
                 repository.createOrder(newOrder) { success, msg ->
@@ -174,7 +158,7 @@ class OrderViewModel : ViewModel() {
             }
     }
 
-    // --- BAGIAN LAIN (HISTORY & ADMIN) ---
+    // --- BAGIAN LAIN ---
     private val _buyerOrders = MutableStateFlow<List<Order>>(emptyList())
     val buyerOrders: StateFlow<List<Order>> = _buyerOrders
 

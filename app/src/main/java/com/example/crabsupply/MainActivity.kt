@@ -16,18 +16,19 @@ import com.example.crabsupply.data.repository.AuthRepository
 import com.example.crabsupply.ui.SplashScreen
 import com.example.crabsupply.ui.admin.AddProductScreen
 import com.example.crabsupply.ui.admin.AdminMainScreen
-import com.example.crabsupply.ui.admin.AdminOrderDetailScreen // Pastikan ini ter-import
+import com.example.crabsupply.ui.admin.AdminOrderDetailScreen
 import com.example.crabsupply.ui.admin.EditProductScreen
 import com.example.crabsupply.ui.auth.LoginScreen
 import com.example.crabsupply.ui.auth.ProfileScreen
 import com.example.crabsupply.ui.auth.RegisterScreen
 import com.example.crabsupply.ui.buyer.BuyerOrderScreen
+import com.example.crabsupply.ui.buyer.CartScreen // <--- IMPORT BARU
 import com.example.crabsupply.ui.buyer.HomeScreen
 import com.example.crabsupply.ui.buyer.MapPickerScreen
 import com.example.crabsupply.ui.buyer.ProductDetailScreen
 import com.example.crabsupply.ui.theme.CrabSupplyTheme
 import com.example.crabsupply.viewmodel.AdminViewModel
-import com.google.firebase.auth.FirebaseAuth // Import untuk Logout
+import com.google.firebase.auth.FirebaseAuth
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -85,7 +86,12 @@ class MainActivity : ComponentActivity() {
                         // --- HALAMAN BUYER ---
                         "home" -> HomeScreen(
                             onProfileClick = { currentScreen = "profile" },
-                            onAddProductClick = { }, // Buyer gabisa
+
+                            // --- TAMBAHAN BARU: AKSI KLIK KERANJANG ---
+                            onCartClick = { currentScreen = "cart" },
+                            // ------------------------------------------
+
+                            onAddProductClick = { },
                             onEditClick = { },
                             onDeleteClick = { },
                             onProductClick = { product ->
@@ -97,17 +103,22 @@ class MainActivity : ComponentActivity() {
                             onBuyerHistoryClick = { currentScreen = "buyer_orders" }
                         )
 
-                        // --- HALAMAN UTAMA ADMIN (DIPERBAIKI) ---
+                        // --- HALAMAN KERANJANG (ROUTE BARU) ---
+                        "cart" -> CartScreen(
+                            onBackClick = { currentScreen = "home" },
+                            onCheckoutClick = {
+                                // Placeholder untuk next step (Checkout Massal)
+                                Toast.makeText(context, "Fitur Checkout Massal Segera Hadir!", Toast.LENGTH_SHORT).show()
+                            }
+                        )
+
+                        // --- HALAMAN UTAMA ADMIN ---
                         "admin_main" -> AdminMainScreen(
                             onNavigateToProfile = { currentScreen = "profile" },
-
-                            // --- INI YANG TADI KURANG ---
                             onLogOut = {
                                 FirebaseAuth.getInstance().signOut()
                                 currentScreen = "login"
                             },
-                            // --------------------------
-
                             onAddProduct = { currentScreen = "add_product" },
                             onEditProduct = { product ->
                                 selectedProduct = product
@@ -148,7 +159,7 @@ class MainActivity : ComponentActivity() {
 
                         "profile" -> ProfileScreen(
                             onBackClick = {
-                                navigateBasedOnRole() // Cek role agar back-nya benar (ke AdminMain atau Home)
+                                navigateBasedOnRole()
                             },
                             onLogoutSuccess = { currentScreen = "login" }
                         )
