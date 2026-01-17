@@ -15,14 +15,19 @@ class HomeViewModel : ViewModel() {
     private val productRepository = ProductRepository()
     private val authRepository = AuthRepository()
 
-    // 1. Data Mentah dari Database (Semua Produk)
+    // 1. Data Mentah
     private val _allProducts = MutableStateFlow<List<Product>>(emptyList())
 
-    // 2. Kata Kunci Pencarian (Ketikan User)
+    // 2. Input User
     private val _searchQuery = MutableStateFlow("")
     val searchQuery: StateFlow<String> = _searchQuery
 
-    // 3. Data Hasil Filter (Ini yang akan ditampilkan di layar)
+    // 3. Filter Kategori (BARU)
+    // Default "Semua". Pilihan lain: "Bakau", "Rajungan", "Telur", "Daging"
+    private val _selectedCategory = MutableStateFlow("Semua")
+    val selectedCategory: StateFlow<String> = _selectedCategory
+
+    // 4. Hasil Akhir
     private val _filteredProducts = MutableStateFlow<List<Product>>(emptyList())
     val filteredProducts: StateFlow<List<Product>> = _filteredProducts
 
@@ -32,50 +37,63 @@ class HomeViewModel : ViewModel() {
     init {
         startRealtimeUpdates()
         checkUserRole()
-        observeSearch() // Mulai memantau ketikan
+        observeFilters() // Pantau perubahan text DAN kategori
     }
 
     private fun checkUserRole() {
-        authRepository.getUserRole { role ->
-            _userRole.value = role
-        }
+        authRepository.getUserRole { role -> _userRole.value = role }
     }
 
     private fun startRealtimeUpdates() {
         viewModelScope.launch {
             productRepository.getProductsRealtime().collect { updatedList ->
                 _allProducts.value = updatedList
-                // Saat data baru masuk, update juga hasil filternya
-                filterData(_searchQuery.value, updatedList)
             }
         }
     }
 
-    // Fungsi Logika Pencarian
-    private fun observeSearch() {
+    // LOGIKA FILTER CERDAS (GABUNGAN TEKS & KATEGORI)
+    private fun observeFilters() {
         viewModelScope.launch {
-            // Gabungkan data produk & search query
-            _searchQuery.collect { query ->
-                filterData(query, _allProducts.value)
+            // combine = Pantau 3 variabel sekaligus (Data, Search, Kategori)
+            combine(_allProducts, _searchQuery, _selectedCategory) { list, query, category ->
+                filterList(list, query, category)
+            }.collect { result ->
+                _filteredProducts.value = result
             }
         }
     }
 
-    private fun filterData(query: String, list: List<Product>) {
-        if (query.isEmpty()) {
-            _filteredProducts.value = list
-        } else {
-            // Cari yang namanya mengandung kata kunci (tidak peduli huruf besar/kecil)
-            _filteredProducts.value = list.filter { product ->
-                product.name.contains(query, ignoreCase = true) ||
-                        product.species.contains(query, ignoreCase = true)
+    private fun filterList(list: List<Product>, query: String, category: String): List<Product> {
+        return list.filter { product ->
+            // 1. Cek Kategori (Spesies ATAU Kondisi)
+            val matchCategory = if (category == "Semua") {
+                true
+            } else {
+                // Cocokkan dengan Species atau Condition (Case Insensitive)
+                product.species.equals(category, ignoreCase = true) ||
+                        product.condition.contains(category, ignoreCase = true)
             }
+
+            // 2. Cek Search Text (Nama Produk)
+            val matchQuery = if (query.isEmpty()) {
+                true
+            } else {
+                product.name.contains(query, ignoreCase = true)
+            }
+
+            // Produk harus lolos KEDUANYA
+            matchCategory && matchQuery
         }
     }
 
-    // Fungsi dipanggil saat user mengetik
+    // Fungsi Input UI
     fun onSearchTextChange(text: String) {
         _searchQuery.value = text
+    }
+
+    fun onCategoryChange(category: String) {
+        _selectedCategory.value = category
     }
 
     fun logout() {
