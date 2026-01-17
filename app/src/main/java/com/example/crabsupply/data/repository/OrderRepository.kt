@@ -42,11 +42,23 @@ class OrderRepository {
     }
 
     // 2. FUNGSI UPDATE STATUS PESANAN
-    fun updateOrderStatus(orderId: String, newStatus: String, onResult: (Boolean) -> Unit) {
+    // GANTI FUNGSI updateOrderStatus LAMA DENGAN INI:
+    fun updateOrderStatus(orderId: String, newStatus: String, callback: (Boolean) -> Unit) {
+        val updates = mutableMapOf<String, Any>("status" to newStatus)
+
+        // Jika status berubah jadi "proses", catat waktunya
+        if (newStatus == "proses") {
+            updates["dateProcessed"] = System.currentTimeMillis()
+        }
+        // Jika status berubah jadi "selesai", catat waktunya
+        if (newStatus == "selesai") {
+            updates["dateCompleted"] = System.currentTimeMillis()
+        }
+
         firestore.collection("orders").document(orderId)
-            .update("status", newStatus)
-            .addOnSuccessListener { onResult(true) }
-            .addOnFailureListener { onResult(false) }
+            .update(updates)
+            .addOnSuccessListener { callback(true) }
+            .addOnFailureListener { callback(false) }
     }
 
     fun getOrdersByBuyerId(userId: String): Flow<List<Order>> = callbackFlow {

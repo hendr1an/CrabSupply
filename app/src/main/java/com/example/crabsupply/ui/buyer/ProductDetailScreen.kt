@@ -6,6 +6,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -22,6 +23,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -29,6 +31,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import coil.compose.rememberAsyncImagePainter
+import com.example.crabsupply.R // Pastikan import R ada untuk akses gambar
 import com.example.crabsupply.data.model.Product
 import com.example.crabsupply.viewmodel.OrderViewModel
 import java.text.NumberFormat
@@ -61,10 +64,12 @@ fun ProductDetailScreen(
     var lat by remember { mutableStateOf(initialLat) }
     var long by remember { mutableStateOf(initialLong) }
 
-    // State Bukti Bayar
+    // State Bukti Bayar (Opsional untuk sekarang)
     var paymentUri by remember { mutableStateOf<Uri?>(null) }
 
-    // Launcher Gambar (Bukti Bayar)
+    // State Metode Pembayaran
+    var selectedPayment by remember { mutableStateOf("Tunai") }
+
     val galleryLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? -> paymentUri = uri }
@@ -74,12 +79,12 @@ fun ProductDetailScreen(
         viewModel.calculatePrice("1", product)
     }
 
-    // Pantau perubahan Qty -> Hitung Ulang Harga Barang
+    // Pantau perubahan Qty -> Hitung Ulang Harga
     LaunchedEffect(qty) {
         viewModel.calculatePrice(qty, product)
     }
 
-    // Pantau Lat/Long -> Hitung Ongkir jika lokasi sudah dipilih
+    // Pantau Lokasi -> Hitung Ongkir
     LaunchedEffect(initialLat, initialLong) {
         if (initialLat.isNotEmpty() && initialLong.isNotEmpty()) {
             val l = initialLat.toDoubleOrNull() ?: 0.0
@@ -116,7 +121,12 @@ fun ProductDetailScreen(
         ) {
             // 1. INFO PRODUK
             Text(text = product.name, fontSize = 22.sp, fontWeight = FontWeight.Bold)
-            Text(text = "${product.species} • ${product.condition} • Size ${product.size}")
+
+            if (product.category == "Kepiting") {
+                Text(text = "${product.species} • ${product.condition} • Size ${product.size}")
+            } else {
+                Text(text = "Fresh Seafood", color = Color.Gray)
+            }
             Spacer(modifier = Modifier.height(8.dp))
 
             if (product.imageUrl.isNotEmpty()) {
@@ -129,17 +139,15 @@ fun ProductDetailScreen(
 
             Divider(modifier = Modifier.padding(vertical = 16.dp))
 
-            // 2. INPUT KUANTITAS & HARGA BERTINGKAT
+            // 2. INPUT KUANTITAS
             Text("Jumlah Pesanan (Kg)", fontWeight = FontWeight.Bold)
             OutlinedTextField(
                 value = qty,
                 onValueChange = { input ->
-                    // Validasi: Hanya boleh angka dan satu titik desimal
                     if (input.all { it.isDigit() || it == '.' } && input.count { it == '.' } <= 1) {
                         qty = input
                     }
                 },
-                // Ubah keyboard jadi Decimal agar muncul titik/koma
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 modifier = Modifier.fillMaxWidth(),
                 label = { Text("Contoh: 0.5 atau 1.5") }
@@ -148,25 +156,20 @@ fun ProductDetailScreen(
             Spacer(modifier = Modifier.height(8.dp))
             if (isWholesale) {
                 Text(
-                    text = "🎉 SELAMAT! Anda mendapatkan Harga Grosir (≥10kg)",
-                    color = Color(0xFF4CAF50),
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 14.sp
+                    text = "🎉 Harga Grosir (≥10kg) Aktif!",
+                    color = Color(0xFF4CAF50), fontWeight = FontWeight.Bold, fontSize = 14.sp
                 )
             } else {
                 Text(
-                    text = "Info: Beli min. 10kg untuk harga grosir lebih murah!",
-                    color = Color.Gray,
-                    fontSize = 12.sp
+                    text = "Info: Beli min. 10kg untuk harga grosir.",
+                    color = Color.Gray, fontSize = 12.sp
                 )
             }
 
             Divider(modifier = Modifier.padding(vertical = 16.dp))
 
-            // 3. LOKASI PENGIRIMAN & ONGKIR (Baru)
+            // 3. ALAMAT & PETA
             Text("Alamat Pengiriman", fontWeight = FontWeight.Bold)
-
-            // TOMBOL BUKA PETA (OSM)
             Button(
                 onClick = onOpenMap,
                 modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
@@ -175,22 +178,7 @@ fun ProductDetailScreen(
                 Icon(Icons.Default.LocationOn, contentDescription = null)
                 Spacer(modifier = Modifier.width(8.dp))
                 if (lat.isNotEmpty()) Text("Lokasi Terpilih ($distance km)")
-                else Text("Pilih Titik Pengantaran di Peta")
-            }
-
-            // Koordinat Read-Only
-            Row(modifier = Modifier.fillMaxWidth()) {
-                OutlinedTextField(
-                    value = lat, onValueChange = {},
-                    label = { Text("Lat") }, modifier = Modifier.weight(1f),
-                    readOnly = true, enabled = false
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                OutlinedTextField(
-                    value = long, onValueChange = {},
-                    label = { Text("Long") }, modifier = Modifier.weight(1f),
-                    readOnly = true, enabled = false
-                )
+                else Text("Pilih Titik di Peta")
             }
 
             OutlinedTextField(
@@ -200,7 +188,7 @@ fun ProductDetailScreen(
                 minLines = 2
             )
 
-            // --- RINCIAN BIAYA ---
+            // 4. RINCIAN BIAYA
             Card(
                 colors = CardDefaults.cardColors(containerColor = Color(0xFFF5F5F5)),
                 modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp)
@@ -231,58 +219,76 @@ fun ProductDetailScreen(
                 }
             }
 
-            Divider(modifier = Modifier.padding(vertical = 16.dp))
+            Divider(modifier = Modifier.padding(vertical = 8.dp))
 
-            // 4. PEMBAYARAN & BUKTI TRANSFER
-            Text("Pembayaran", fontWeight = FontWeight.Bold)
-            Card(
-                colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF3E0)),
-                modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
-            ) {
-                Column(modifier = Modifier.padding(12.dp)) {
-                    Text("Bank BCA: 123-456-7890 (A.n CrabSupply)", fontWeight = FontWeight.Bold)
-                    Text("Silakan transfer sesuai total dan upload bukti di bawah.")
+            // 5. METODE PEMBAYARAN (FITUR BARU)
+            Text("Metode Pembayaran", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+
+            Column(modifier = Modifier.padding(vertical = 8.dp)) {
+                // Pilihan 1: Tunai
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable { selectedPayment = "Tunai" }) {
+                    RadioButton(selected = selectedPayment == "Tunai", onClick = { selectedPayment = "Tunai" })
+                    Text("Tunai (COD / Bayar di Tempat)")
                 }
-            }
 
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(150.dp)
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(Color.LightGray)
-                    .clickable { galleryLauncher.launch("image/*") },
-                contentAlignment = Alignment.Center
-            ) {
-                if (paymentUri != null) {
-                    Image(
-                        painter = rememberAsyncImagePainter(paymentUri),
-                        contentDescription = "Bukti Bayar",
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop
-                    )
-                } else {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(Icons.Default.LocationOn, contentDescription = null)
-                        Text("Klik untuk Upload Bukti Transfer")
+                // Pilihan 2: Non-Tunai
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable { selectedPayment = "Non-Tunai" }) {
+                    RadioButton(selected = selectedPayment == "Non-Tunai", onClick = { selectedPayment = "Non-Tunai" })
+                    Text("Non-Tunai (Transfer / QRIS)")
+                }
+
+                // TAMPILAN KHUSUS NON-TUNAI
+                if (selectedPayment == "Non-Tunai") {
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                        modifier = Modifier.fillMaxWidth().padding(8.dp).border(1.dp, Color.Gray, RoundedCornerShape(8.dp))
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(16.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text("Transfer Bank", fontWeight = FontWeight.Bold)
+                            Text("BCA: 3820079107", fontSize = 18.sp, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+                            Text("A/N: Ayyun Izzati", fontSize = 14.sp)
+
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Divider()
+                            Spacer(modifier = Modifier.height(16.dp))
+
+                            Text("Scan QRIS", fontWeight = FontWeight.Bold)
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            // GAMBAR QRIS DARI DRAWABLE
+                            Image(
+                                painter = painterResource(id = R.drawable.qris_code),
+                                contentDescription = "QRIS Code",
+                                modifier = Modifier.size(250.dp).clip(RoundedCornerShape(8.dp)),
+                                contentScale = ContentScale.Fit
+                            )
+
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text("Silakan upload bukti bayar setelah pemesanan.", fontSize = 12.sp, color = Color.Gray)
+                        }
                     }
                 }
             }
 
             Spacer(modifier = Modifier.height(24.dp))
 
+            // TOMBOL BELI
             Button(
                 onClick = {
                     viewModel.submitOrder(
                         product, qty, address, lat, long,
-                        hasPaymentProof = (paymentUri != null)
+                        hasPaymentProof = true, // Bypass validasi bukti untuk demo
+                        paymentMethod = selectedPayment // Kirim Metode ke ViewModel
                     )
                 },
                 modifier = Modifier.fillMaxWidth().height(50.dp),
                 enabled = !isLoading
             ) {
                 if (isLoading) CircularProgressIndicator(color = Color.White)
-                else Text("KONFIRMASI PESANAN")
+                else Text("BUAT PESANAN")
             }
         }
     }

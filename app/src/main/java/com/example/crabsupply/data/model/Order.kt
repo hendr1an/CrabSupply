@@ -12,5 +12,16 @@ data class Order(
     val totalPrice: Int = 0,       // Total Bayar (Harga x Qty)
     val status: String = "pending",// Status: pending, diproses, selesai, tolak
     val address: String = "",      // Alamat kirim
-    val timestamp: Long = System.currentTimeMillis() // Waktu pesan
+    val paymentMethod: String = "",
+    val timestamp: Long = System.currentTimeMillis(), // Waktu pesan
+    // --- TAMBAHAN FIELD WAKTU (TIMESTAMP) ---
+    // Default system saat order dibuat
+    val dateCreated: Long = System.currentTimeMillis(),
+
+    // Nanti diisi saat admin klik "Proses"
+    val dateProcessed: Long = 0L,
+
+    // Nanti diisi saat admin klik "Selesai"
+    val dateCompleted: Long = 0L,
+    val paymentProofImage: String = ""
 )

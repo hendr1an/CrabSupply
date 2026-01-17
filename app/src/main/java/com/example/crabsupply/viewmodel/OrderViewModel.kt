@@ -45,7 +45,7 @@ class OrderViewModel : ViewModel() {
     private val _finalTotal = MutableStateFlow(0)
     val finalTotal: StateFlow<Int> = _finalTotal
 
-    // 1. FUNGSI HITUNG HARGA BARANG (UPDATE: MENDUKUNG DESIMAL/DOUBLE)
+    // 1. FUNGSI HITUNG HARGA BARANG
     fun calculatePrice(qtyInput: String, product: Product) {
         // Ubah input text jadi Double (Desimal)
         val qty = qtyInput.toDoubleOrNull() ?: 0.0
@@ -91,14 +91,15 @@ class OrderViewModel : ViewModel() {
         _finalTotal.value = _calculatedPrice.value + _shippingCost.value
     }
 
-    // 4. FUNGSI SUBMIT ORDER (UPDATE: MENDUKUNG DESIMAL/DOUBLE)
+    // 4. FUNGSI SUBMIT ORDER (REVISI: Menerima Payment Method)
     fun submitOrder(
         product: Product,
         qtyInput: String,
         address: String,
         latitude: String,
         longitude: String,
-        hasPaymentProof: Boolean
+        hasPaymentProof: Boolean,
+        paymentMethod: String // <--- PARAMETER BARU
     ) {
         _isLoading.value = true
         val userId = auth.currentUser?.uid
@@ -112,22 +113,23 @@ class OrderViewModel : ViewModel() {
         // Konversi input ke Double
         val qty = qtyInput.toDoubleOrNull() ?: 0.0
 
-        // Validasi minimal 0.1 kg (bukan 0 atau 1)
+        // Validasi minimal 0.1 kg
         if (qty <= 0.0) {
             _orderStatus.value = "Minimal pembelian 0.1 kg!"
             _isLoading.value = false
             return
         }
 
-        // Validasi Sesuai SRS
+        // Validasi Alamat
         if (address.isEmpty() || latitude.isEmpty() || longitude.isEmpty()) {
             _orderStatus.value = "Alamat dan Lokasi Peta wajib diisi!"
             _isLoading.value = false
             return
         }
 
-        if (!hasPaymentProof) {
-            _orderStatus.value = "Wajib upload bukti transfer!"
+        // Validasi Bukti Bayar (Hanya Wajib jika Non-Tunai)
+        if (paymentMethod == "Non-Tunai" && !hasPaymentProof) {
+            _orderStatus.value = "Wajib upload bukti transfer untuk Non-Tunai!"
             _isLoading.value = false
             return
         }
@@ -150,10 +152,14 @@ class OrderViewModel : ViewModel() {
                     productName = product.name,
                     productSpecies = product.species,
                     pricePerKg = finalPricePerKg,
-                    quantity = qty, // Simpan sebagai Double (misal: 1.5)
-                    totalPrice = totalBayar, // Simpan total yang sudah kena ongkir
+                    quantity = qty,
+                    totalPrice = totalBayar,
                     address = "$address (Jarak: ${String.format("%.1f", _distanceKm.value)} km)",
-                    status = "pending"
+                    status = "pending",
+
+                    // --- SIMPAN DATA BARU ---
+                    paymentMethod = paymentMethod,
+                    dateCreated = System.currentTimeMillis() // Simpan waktu pembuatan order
                 )
 
                 repository.createOrder(newOrder) { success, msg ->
