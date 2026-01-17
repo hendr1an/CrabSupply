@@ -22,9 +22,10 @@ import com.example.crabsupply.ui.auth.LoginScreen
 import com.example.crabsupply.ui.auth.ProfileScreen
 import com.example.crabsupply.ui.auth.RegisterScreen
 import com.example.crabsupply.ui.buyer.BuyerOrderScreen
-import com.example.crabsupply.ui.buyer.CartScreen // <--- IMPORT BARU
+import com.example.crabsupply.ui.buyer.CartScreen
 import com.example.crabsupply.ui.buyer.HomeScreen
 import com.example.crabsupply.ui.buyer.MapPickerScreen
+import com.example.crabsupply.ui.buyer.MassCheckoutScreen // <--- IMPORT BARU
 import com.example.crabsupply.ui.buyer.ProductDetailScreen
 import com.example.crabsupply.ui.theme.CrabSupplyTheme
 import com.example.crabsupply.viewmodel.AdminViewModel
@@ -86,11 +87,7 @@ class MainActivity : ComponentActivity() {
                         // --- HALAMAN BUYER ---
                         "home" -> HomeScreen(
                             onProfileClick = { currentScreen = "profile" },
-
-                            // --- TAMBAHAN BARU: AKSI KLIK KERANJANG ---
-                            onCartClick = { currentScreen = "cart" },
-                            // ------------------------------------------
-
+                            onCartClick = { currentScreen = "cart" }, // Masuk ke Keranjang
                             onAddProductClick = { },
                             onEditClick = { },
                             onDeleteClick = { },
@@ -103,12 +100,32 @@ class MainActivity : ComponentActivity() {
                             onBuyerHistoryClick = { currentScreen = "buyer_orders" }
                         )
 
-                        // --- HALAMAN KERANJANG (ROUTE BARU) ---
+                        // --- HALAMAN KERANJANG ---
                         "cart" -> CartScreen(
                             onBackClick = { currentScreen = "home" },
                             onCheckoutClick = {
-                                // Placeholder untuk next step (Checkout Massal)
-                                Toast.makeText(context, "Fitur Checkout Massal Segera Hadir!", Toast.LENGTH_SHORT).show()
+                                // Reset koordinat agar user memilih lokasi baru khusus checkout massal
+                                selectedLat = ""
+                                selectedLong = ""
+                                currentScreen = "mass_checkout" // Pindah ke Mass Checkout
+                            }
+                        )
+
+                        // --- HALAMAN CHECKOUT MASSAL (BARU) ---
+                        "mass_checkout" -> MassCheckoutScreen(
+                            initialLat = selectedLat,
+                            initialLong = selectedLong,
+                            onBackClick = { currentScreen = "cart" },
+                            onOpenMap = { currentScreen = "map_picker_mass" }, // Peta khusus
+                            onSuccess = { currentScreen = "home" } // Sukses bayar -> Home
+                        )
+
+                        // --- MAP PICKER KHUSUS MASS CHECKOUT ---
+                        "map_picker_mass" -> MapPickerScreen(
+                            onLocationSelected = { lat, long ->
+                                selectedLat = lat.toString()
+                                selectedLong = long.toString()
+                                currentScreen = "mass_checkout" // Kembali ke Mass Checkout
                             }
                         )
 

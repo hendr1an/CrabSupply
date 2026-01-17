@@ -72,4 +72,20 @@ class CartRepository {
             .collection("cart").document(itemId)
             .update(updates)
     }
+
+    fun clearCart(callback: () -> Unit) {
+        if (userId == null) return
+
+        // Ambil semua dokumen dulu, baru hapus satu-satu (Batch Delete)
+        firestore.collection("users").document(userId!!)
+            .collection("cart")
+            .get()
+            .addOnSuccessListener { snapshot ->
+                val batch = firestore.batch()
+                for (doc in snapshot.documents) {
+                    batch.delete(doc.reference)
+                }
+                batch.commit().addOnSuccessListener { callback() }
+            }
+    }
 }
